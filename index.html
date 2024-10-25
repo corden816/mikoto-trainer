@@ -127,20 +127,43 @@
     </div>
 
     <script>
-        window.onload = async function() {
-            // Speech SDK 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check if Speech SDK is loaded
+            if (typeof SpeechSDK === 'undefined') {
+                document.getElementById('status').textContent = 'Speech SDK not loaded. Please check your internet connection.';
+                return;
+            }
+
+            // Initialize Speech SDK
             const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(config.apiKey, config.region);
             speechConfig.speechRecognitionLanguage = 'en-US';
 
+            // Global variables
             let audioContext;
             let analyser;
             let recognizer;
             let timeLeft;
             let recordingTimer;
+            let animationFrame;
             const practiceText = document.getElementById('practiceText').innerText;
 
-            // Native Speaker 재생
-            document.getElementById('playNative').onclick = () => {
+            // Get UI elements
+            const playNativeBtn = document.getElementById('playNative');
+            const startRecordingBtn = document.getElementById('startRecording');
+            const stopRecordingBtn = document.getElementById('stopRecording');
+            const statusElement = document.getElementById('status');
+            const volumeBar = document.getElementById('volumeBar');
+            const waveformCanvas = document.getElementById('waveformCanvas');
+            const pronunciationScoreElement = document.getElementById('pronunciationScore');
+            const feedbackElement = document.getElementById('feedback');
+
+            // Initialize waveform canvas
+            waveformCanvas.width = waveformCanvas.offsetWidth;
+            waveformCanvas.height = waveformCanvas.offsetHeight;
+            const waveformCtx = waveformCanvas.getContext('2d');
+
+            // Play native speaker
+            playNativeBtn.onclick = () => {
                 const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
                 const ssml = `
                     <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
@@ -160,7 +183,7 @@
                     });
             };
 
-            // 타이머 함수
+            // Timer function
             function updateTimer() {
                 document.getElementById('timer').textContent = `Time remaining: ${timeLeft}s`;
                 if (timeLeft <= 0) {
@@ -170,51 +193,135 @@
                 }
             }
 
-            // 오디오 컨텍스트 초기화
-            async function initAudioContext() {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                analyser = audioContext.createAnalyser();
-                analyser.fftSize = 2048;
-            }
-
-            // 볼륨 표시기 업데이트
-            function updateVolumeIndicator(dataArray) {
-                const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-                const volume = Math.min(100, Math.max(0, average * 2));
-                document.getElementById('volumeBar').style.width = volume + '%';
-            }
-
-            // 파형 그리기
-            function drawWaveform(dataArray, canvas) {
-                const ctx = canvas.getContext('2d');
-                ctx.fillStyle = '#f0f0f0';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Draw waveform
+            function drawWaveform(dataArray) {
+                waveformCtx.fillStyle = '#f0f0f0';
+                waveformCtx.fillRect(0, 0, waveformCanvas.width, waveformCanvas.height);
                 
-                ctx.lineWidth = 2;
-                ctx.strokeStyle = '#4CAF50';
-                ctx.beginPath();
+                waveformCtx.lineWidth = 2;
+                waveformCtx.strokeStyle = '#4CAF50';
+                waveformCtx.beginPath();
 
-                const sliceWidth = canvas.width / dataArray.length;
+                const sliceWidth = waveformCanvas.width / dataArray.length;
                 let x = 0;
 
                 for (let i = 0; i < dataArray.length; i++) {
                     const v = dataArray[i] / 128.0;
-                    const y = (v * canvas.height) / 2;
+                    const y = (v * waveformCanvas.height) / 2;
 
                     if (i === 0) {
-                        ctx.moveTo(x, y);
+                        waveformCtx.moveTo(x, y);
                     } else {
-                        ctx.lineTo(x, y);
+                        waveformCtx.lineTo(x, y);
                     }
 
                     x += sliceWidth;
                 }
 
-                ctx.lineTo(canvas.width, canvas.height / 2);
-                ctx.stroke();
+                waveformCtx.lineTo(waveformCanvas.width, waveformCanvas.height / 2);
+                waveformCtx.stroke();
             }
 
-            // 차트 업데이트
+            // Update visualization
+            function updateVisualization(dataArray) {
+                const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                const volume = Math.min(100, Math.max(0, average * 2));
+                volumeBar.style.width = `${volume}%`;
+                drawWaveform(dataArray);
+            }
+
+            // Start recording
+            async function startRecording() {
+                try {
+                    if (!audioContext) {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        analyser = audioContext.createAnalyser();
+                        analyser.fftSize = 2048;
+                    }
+
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    const mediaStreamSource = audioContext.createMediaStreamSource(stream);
+                    mediaStreamSource.connect(analyser);
+
+                    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                    function visualize() {
+                        animationFrame = requestAnimationFrame(visualize);
+                        analyser.getByteTimeDomainData(dataArray);
+                        updateVisualization(dataArray);
+                    }
+                    visualize();
+
+                    // Set up pronunciation assessment
+                    const audioConfig = SpeechSDK.AudioConfig.fromStreamInput(stream);
+                    const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
+                        practiceText,
+                        SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
+                        SpeechSDK.PronunciationAssessmentGranularity.Word,
+                        true
+                    );
+
+                    recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+                    pronunciationAssessmentConfig.applyTo(recognizer);
+
+                    recognizer.recognized = (s, e) => {
+                        if (e.result.text) {
+                            try {
+                                const jsonResult = e.result.properties.getProperty(SpeechSDK.PropertyId.SpeechServiceResponse_JsonResult);
+                                const pronunciationResult = JSON.parse(jsonResult);
+                                
+                                if (pronunciationResult.NBest && pronunciationResult.NBest[0].PronunciationAssessment) {
+                                    const assessment = pronunciationResult.NBest[0].PronunciationAssessment;
+                                    
+                                    pronunciationScoreElement.textContent = 
+                                        `Accuracy: ${assessment.AccuracyScore}%\n` +
+                                        `Pronunciation: ${assessment.PronScore}%\n` +
+                                        `Completeness: ${assessment.CompletenessScore}%\n` +
+                                        `Fluency: ${assessment.FluencyScore}%`;
+
+                                    feedbackElement.textContent = 
+                                        assessment.AccuracyScore >= 80 ? "Excellent pronunciation!" :
+                                        assessment.AccuracyScore >= 60 ? "Good pronunciation. Keep practicing!" :
+                                        "Keep practicing to improve your pronunciation.";
+
+                                    updateChart(pronunciationResult.NBest[0].Words);
+                                }
+                            } catch (error) {
+                                console.error('Error processing pronunciation result:', error);
+                            }
+                        }
+                    };
+
+                    timeLeft = 30;
+                    updateTimer();
+                    recordingTimer = setInterval(updateTimer, 1000);
+
+                    startRecordingBtn.disabled = true;
+                    stopRecordingBtn.disabled = false;
+                    statusElement.textContent = 'Recording... Speak now!';
+
+                    recognizer.startContinuousRecognitionAsync();
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    statusElement.textContent = 'Error starting recording. Please check your microphone.';
+                }
+            }
+
+            // Stop recording
+            function stopRecording() {
+                clearInterval(recordingTimer);
+                cancelAnimationFrame(animationFrame);
+                
+                if (recognizer) {
+                    recognizer.stopContinuousRecognitionAsync();
+                    startRecordingBtn.disabled = false;
+                    stopRecordingBtn.disabled = true;
+                    statusElement.textContent = 'Recording stopped';
+                    volumeBar.style.width = '0%';
+                }
+            }
+
+            // Update chart
             function updateChart(words) {
                 const ctx = document.getElementById('pronunciationChart').getContext('2d');
                 
@@ -266,103 +373,10 @@
                 });
             }
 
-            // 녹음 시작
-            async function startRecording() {
-                if (!audioContext) {
-                    await initAudioContext();
-                }
-
-                timeLeft = 30;
-                updateTimer();
-                recordingTimer = setInterval(updateTimer, 1000);
-
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    const mediaStreamSource = audioContext.createMediaStreamSource(stream);
-                    mediaStreamSource.connect(analyser);
-
-                    // 실시간 오디오 시각화
-                    const waveformCanvas = document.getElementById('waveformCanvas');
-                    waveformCanvas.width = waveformCanvas.offsetWidth;
-                    waveformCanvas.height = waveformCanvas.offsetHeight;
-
-                    const dataArray = new Uint8Array(analyser.frequencyBinCount);
-                    function visualize() {
-                        requestAnimationFrame(visualize);
-                        analyser.getByteTimeDomainData(dataArray);
-                        drawWaveform(dataArray, waveformCanvas);
-                        updateVolumeIndicator(dataArray);
-                    }
-                    visualize();
-
-                    // 발음 평가 설정
-                    const audioConfig = SpeechSDK.AudioConfig.fromStreamInput(stream);
-                    const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
-                        practiceText,
-                        SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
-                        SpeechSDK.PronunciationAssessmentGranularity.Word,
-                        true
-                    );
-
-                    recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
-                    pronunciationAssessmentConfig.applyTo(recognizer);
-
-                    recognizer.recognized = (s, e) => {
-                        if (e.result.text) {
-                            try {
-                                const jsonResult = e.result.properties.getProperty(SpeechSDK.PropertyId.SpeechServiceResponse_JsonResult);
-                                const pronunciationResult = JSON.parse(jsonResult);
-                                
-                                if (pronunciationResult.NBest && pronunciationResult.NBest[0].PronunciationAssessment) {
-                                    const assessment = pronunciationResult.NBest[0].PronunciationAssessment;
-                                    
-                                    document.getElementById('pronunciationScore').textContent = 
-                                        `Accuracy: ${assessment.AccuracyScore}%\n` +
-                                        `Pronunciation: ${assessment.PronScore}%\n` +
-                                        `Completeness: ${assessment.CompletenessScore}%\n` +
-                                        `Fluency: ${assessment.FluencyScore}%`;
-
-                                    document.getElementById('feedback').textContent = 
-                                        assessment.AccuracyScore >= 80 ? "Excellent pronunciation!" :
-                                        assessment.AccuracyScore >= 60 ? "Good pronunciation. Keep practicing!" :
-                                        "Keep practicing to improve your pronunciation.";
-
-                                    updateChart(pronunciationResult.NBest[0].Words);
-                                }
-                            } catch (error) {
-                                console.error('Error processing pronunciation result:', error);
-                            }
-                        }
-                    };
-
-                    document.getElementById('startRecording').disabled = true;
-                    document.getElementById('stopRecording').disabled = false;
-                    document.getElementById('status').textContent = 'Recording... Speak now!';
-
-                    recognizer.startContinuousRecognitionAsync();
-
-                } catch (error) {
-                    console.error('Error:', error);
-                    document.getElementById('status').textContent = 'Error starting recording. Please check your microphone.';
-                }
-            }
-
-            // 녹음 중지
-            function stopRecording() {
-                clearInterval(recordingTimer);
-                if (recognizer) {
-                    recognizer.stopContinuousRecognitionAsync();
-                    document.getElementById('startRecording').disabled = false;
-                    document.getElementById('stopRecording').disabled = true;
-                    document.getElementById('status').textContent = 'Recording stopped';
-                    document.getElementById('volumeBar').style.width = '0%';
-                }
-            }
-
-            // 이벤트 리스너
-            document.getElementById('startRecording').addEventListener('click', startRecording);
-            document.getElementById('stopRecording').addEventListener('click', stopRecording);
-        };
+            // Add event listeners
+            startRecordingBtn.addEventListener('click', startRecording);
+            stopRecordingBtn.addEventListener('click', stopRecording);
+        });
     </script>
 </body>
 </html>
