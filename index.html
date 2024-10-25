@@ -275,8 +275,8 @@
                                     // 새로운 가중치 적용 및 낮춤
                                     const weights = {
                                         accuracy: 0.3,    // 정확도 가중치 낮춤
-                                        pronunciation: 0.25, // 발음 가중치 낮춤
-                                        completeness: 0.25, // 완성도 가중치 낮춤
+                                        pronunciation: 0.5, // 발음 가중치 낮춤
+                                       
                                         fluency: 0.2      // 유창성 가중치 조금 낮춤
                                     };
 
@@ -284,7 +284,7 @@
                                     const rawScores = {
                                         accuracy: assessment.AccuracyScore,
                                         pronunciation: assessment.PronScore,
-                                        completeness: assessment.CompletenessScore,
+                                       
                                         fluency: assessment.FluencyScore
                                     };
 
@@ -292,7 +292,7 @@
                                     const penalties = {
                                         accuracy: rawScores.accuracy < 70 ? 0.5 : 1,      // 정확도가 70% 미만이면 50% 감점
                                         pronunciation: rawScores.pronunciation < 65 ? 0.5 : 1, // 발음이 65% 미만이면 50% 감점
-                                        completeness: rawScores.completeness < 70 ? 0.5 : 1,  // 완성도가 80% 미만이면 50% 감점
+                                        
                                         fluency: rawScores.fluency < 60 ? 0.5 : 1         // 유창성이 60% 미만이면 50% 감점
                                     };
 
@@ -311,7 +311,6 @@
                                     pronunciationScoreElement.textContent = 
                                         `Accuracy: ${finalScores.accuracy.toFixed(1)}% (Weight: ${weights.accuracy * 100}%)\n` +
                                         `Pronunciation: ${finalScores.pronunciation.toFixed(1)}% (Weight: ${weights.pronunciation * 100}%)\n` +
-                                        `Completeness: ${finalScores.completeness.toFixed(1)}% (Weight: ${weights.completeness * 100}%)\n` +
                                         `Fluency: ${finalScores.fluency.toFixed(1)}% (Weight: ${weights.fluency * 100}%)\n` +
                                         `Overall Score: ${weightedTotal.toFixed(1)}%`;
 
@@ -322,9 +321,6 @@
                                     }
                                     if (finalScores.pronunciation < 65) {
                                         feedback.push("Work on individual sound pronunciation, especially vowels and consonants.");
-                                    }
-                                    if (finalScores.completeness < 80) {
-                                        feedback.push("Try to complete each word without skipping syllables.");
                                     }
                                     if (finalScores.fluency < 60) {
                                         feedback.push("Practice speaking more smoothly with fewer pauses.");
