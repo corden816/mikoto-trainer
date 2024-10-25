@@ -1,4 +1,3 @@
-// Azure Speech 설정은 config.js에서 가져옴
 let audioContext;
 let analyser;
 let mediaStreamSource;
@@ -18,43 +17,22 @@ const sampleTexts = {
     5: "Sample text 5"
 };
 
-// Initialize audio context
+// Initialize audio context on first interaction
 async function initAudioContext() {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
     analyser = audioContext.createAnalyser();
 }
 
-// Initialize Azure Speech SDK
-function initSpeechSDK() {
-    if (window.SpeechSDK) {
-        speechConfig = SpeechSDK.SpeechConfig.fromSubscription(window.config.apiKey, window.config.region);
-        speechConfig.speechRecognitionLanguage = "en-US";
-        console.log('Speech SDK initialized successfully');
-    } else {
-        console.error('Speech SDK not found');
-    }
-}
+// Mobile-friendly event listeners for buttons
+document.addEventListener('DOMContentLoaded', () => {
+    const startRecordingButton = document.getElementById('startRecording');
+    const playNativeButton = document.getElementById('playNative');
 
-// 샘플 변경 함수
-function changeSample(sampleNumber) {
-    currentSample = sampleNumber;
-    const practiceText = document.querySelector('.practice-text');
-    if (practiceText) {
-        practiceText.textContent = sampleTexts[sampleNumber];
-    }
-
-    document.querySelectorAll('.sample-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.dataset.sample === String(sampleNumber)) {
-            btn.classList.add('active');
-        }
-    });
-
-    if (currentAudio) {
-        currentAudio.pause();
-        currentAudio = null;
-    }
-}
+    startRecordingButton.addEventListener('click', startRecording);
+    playNativeButton.addEventListener('click', playNativeSpeaker);
+});
 
 // Play native speaker audio
 function playNativeSpeaker() {
@@ -66,15 +44,13 @@ function playNativeSpeaker() {
     document.getElementById('status').textContent = 'Loading audio...';
     document.getElementById('playNative').disabled = true;
 
-    // 경로를 수정하여 오디오 파일 로드
-    currentAudio = new Audio();
-    currentAudio.src = `audio/native-speaker${currentSample}.mp3`; // audio 경로가 포함된 파일 경로
+    currentAudio = new Audio(`audio/native-speaker${currentSample}.mp3`);
+    
     currentAudio.oncanplaythrough = () => {
         document.getElementById('status').textContent = 'Playing audio...';
         currentAudio.play().catch(error => {
             console.error('Play error:', error);
             document.getElementById('status').textContent = 'Error playing audio';
-            document.getElementById('playNative').disabled = false;
         });
     };
 
@@ -88,22 +64,22 @@ function playNativeSpeaker() {
         document.getElementById('status').textContent = 'Error loading audio';
         document.getElementById('playNative').disabled = false;
     };
-
-    currentAudio.load();
 }
 
-// Start recording
+// Start recording with microphone access check
 async function startRecording() {
-    if (!audioContext) {
-        await initAudioContext();
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        document.getElementById('status').textContent = 'Microphone access not supported on this device';
+        return;
     }
 
     try {
+        await initAudioContext();
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        updateVolumeIndicator(stream);
+        
+        updateVolumeIndicator(stream); // Volume indicator
 
         const referenceText = document.querySelector('.practice-text').textContent;
-        
         const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
             referenceText,
             SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
@@ -121,6 +97,10 @@ async function startRecording() {
 
         recognizer.recognizing = (s, e) => {
             document.getElementById('status').textContent = `Recognizing: ${e.result.text}`;
+            const confidenceLevel = e.result.confidence;
+            const volumeBar = document.getElementById('volumeBar');
+            volumeBar.style.backgroundColor = confidenceLevel > 0.75 ? '#28a745' :
+                                               confidenceLevel > 0.5 ? '#ffc107' : '#dc3545';
         };
 
         recognizer.recognized = (s, e) => {
@@ -131,7 +111,7 @@ async function startRecording() {
         };
 
         recognizer.startContinuousRecognitionAsync();
-        setTimeout(stopRecording, 5000);
+        setTimeout(stopRecording, 30000); // 30초 후 자동 종료
     } catch (error) {
         console.error('Error starting recording:', error);
         document.getElementById('status').textContent = 'Error accessing microphone';
@@ -146,6 +126,8 @@ function stopRecording() {
         document.getElementById('startRecording').disabled = false;
         document.getElementById('status').textContent = 'Recording stopped';
 
+        document.getElementById('volumeBar').style.backgroundColor = '#4CAF50';
+
         if (mediaStreamSource) {
             mediaStreamSource.disconnect();
         }
@@ -154,8 +136,6 @@ function stopRecording() {
 
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('DOM loaded');
-    
     try {
         await waitForSDK();
         initSpeechSDK();
