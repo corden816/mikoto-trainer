@@ -1,3 +1,16 @@
+// Wait until the Speech SDK is loaded
+function waitForSDK() {
+    return new Promise((resolve) => {
+        const check = () => {
+            if (window.SpeechSDK) {
+                resolve();
+            } else {
+                setTimeout(check, 100);
+            }
+        };
+        check();
+    });
+}
 let audioContext;
 let analyser;
 let mediaStreamSource;
