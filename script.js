@@ -99,7 +99,7 @@ async function startRecording() {
 
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        updateVolumeIndicator(stream);
+        updateVolumeIndicator(stream); // Volume indicator to show real-time changes
 
         const referenceText = document.querySelector('.practice-text').textContent;
         
@@ -120,6 +120,17 @@ async function startRecording() {
 
         recognizer.recognizing = (s, e) => {
             document.getElementById('status').textContent = `Recognizing: ${e.result.text}`;
+            
+            // Adjust volume bar color based on recognition confidence level
+            const confidenceLevel = e.result.confidence;
+            const volumeBar = document.getElementById('volumeBar');
+            if (confidenceLevel > 0.75) {
+                volumeBar.style.backgroundColor = '#28a745'; // Green for high confidence
+            } else if (confidenceLevel > 0.5) {
+                volumeBar.style.backgroundColor = '#ffc107'; // Yellow for moderate confidence
+            } else {
+                volumeBar.style.backgroundColor = '#dc3545'; // Red for low confidence
+            }
         };
 
         recognizer.recognized = (s, e) => {
@@ -130,7 +141,9 @@ async function startRecording() {
         };
 
         recognizer.startContinuousRecognitionAsync();
-        setTimeout(stopRecording, 5000);
+        
+        // Set recording timeout to 30 seconds
+        setTimeout(stopRecording, 30000);
     } catch (error) {
         console.error('Error starting recording:', error);
         document.getElementById('status').textContent = 'Error accessing microphone';
@@ -144,6 +157,9 @@ function stopRecording() {
         isRecording = false;
         document.getElementById('startRecording').disabled = false;
         document.getElementById('status').textContent = 'Recording stopped';
+
+        // Reset the volume bar color to its original state
+        document.getElementById('volumeBar').style.backgroundColor = '#4CAF50';
 
         if (mediaStreamSource) {
             mediaStreamSource.disconnect();
