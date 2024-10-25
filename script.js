@@ -18,64 +18,66 @@ const sampleTexts = {
 };
 
 // Initialize audio context
+// Initialize audio context on first interaction
 async function initAudioContext() {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
     analyser = audioContext.createAnalyser();
 }
 
-// Initialize Azure Speech SDK
-function initSpeechSDK() {
-    if (window.SpeechSDK) {
-        speechConfig = SpeechSDK.SpeechConfig.fromSubscription(window.config.apiKey, window.config.region);
-        speechConfig.speechRecognitionLanguage = "en-US";
-        console.log('Speech SDK initialized successfully');
-    } else {
-        console.error('Speech SDK not found');
+// Mobile-friendly event listeners for buttons
+document.addEventListener('DOMContentLoaded', () => {
+    const startRecordingButton = document.getElementById('startRecording');
+    const playNativeButton = document.getElementById('playNative');
+
+    // Add touchstart event for mobile compatibility
+    startRecordingButton.addEventListener('click', startRecording);
+    startRecordingButton.addEventListener('touchstart', startRecording);
+
+    playNativeButton.addEventListener('click', playNativeSpeaker);
+    playNativeButton.addEventListener('touchstart', playNativeSpeaker);
+});
+
+// Check if getUserMedia is available
+async function startRecording() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        document.getElementById('status').textContent = 'Microphone access not supported on this device';
+        return;
+    }
+
+    try {
+        await initAudioContext();
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        updateVolumeIndicator(stream); // Volume indicator
+        
+        const referenceText = document.querySelector('.practice-text').textContent;
+
+        const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
+            referenceText,
+            SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
+            SpeechSDK.PronunciationAssessmentGranularity.Word,
+            true
+        );
+
+        audioConfig = SpeechSDK.AudioConfig.fromStreamInput(stream);
+        recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+        pronunciationAssessmentConfig.applyTo(recognizer);
+
+        isRecording = true;
+        startRecordingButton.disabled = true;
+        document.getElementById('status').textContent = 'Recording... Speak now!';
+
+        recognizer.startContinuousRecognitionAsync();
+        
+        setTimeout(stopRecording, 30000); // 30초 후 자동 종료
+    } catch (error) {
+        console.error('Error starting recording:', error);
+        document.getElementById('status').textContent = 'Error accessing microphone on mobile';
     }
 }
 
-// 샘플 변경 함수
-function changeSample(sampleNumber) {
-    currentSample = sampleNumber;
-    const practiceText = document.querySelector('.practice-text');
-    if (practiceText) {
-        practiceText.textContent = sampleTexts[sampleNumber];
-    }
-
-    document.querySelectorAll('.sample-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.dataset.sample === String(sampleNumber)) {
-            btn.classList.add('active');
-        }
-    });
-
-    if (currentAudio) {
-        currentAudio.pause();
-        currentAudio = null;
-    }
-}
-
-// Play native speaker audio
-function playNativeSpeaker() {
-    if (currentAudio) {
-        currentAudio.pause();
-        currentAudio = null;
-    }
-
-    document.getElementById('status').textContent = 'Loading audio...';
-    document.getElementById('playNative').disabled = true;
-
-    // 경로를 수정하여 오디오 파일 로드
-    currentAudio = new Audio();
-    currentAudio.src = `audio/native-speaker${currentSample}.mp3`; // audio 경로가 포함된 파일 경로
-    currentAudio.oncanplaythrough = () => {
-        document.getElementById('status').textContent = 'Playing audio...';
-        currentAudio.play().catch(error => {
-            console.error('Play error:', error);
-            document.getElementById('status').textContent = 'Error playing audio';
-            document.getElementById('playNative').disabled = false;
-        });
-    };
 
     currentAudio.onended = () => {
         document.getElementById('status').textContent = 'Audio finished';
