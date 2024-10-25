@@ -1,3 +1,4 @@
+// Azure Speech 설정은 config.js에서 가져옴
 // Global variables
 let audioContext;
 let analyser;
@@ -30,8 +31,38 @@ async function initAudioContext() {
 
 // Initialize Azure Speech SDK
 function initSpeechSDK() {
-    speechConfig = SpeechSDK.SpeechConfig.fromSubscription(config.apiKey, config.region);
-    speechConfig.speechRecognitionLanguage = "en-US";
+    try {
+        if (window.SpeechSDK) {
+            speechConfig = SpeechSDK.SpeechConfig.fromSubscription(window.config.apiKey, window.config.region);
+            speechConfig.speechRecognitionLanguage = "en-US";
+            console.log('Speech SDK initialized successfully');
+        } else {
+            console.error('Speech SDK not found');
+        }
+    } catch (error) {
+        console.error('Error initializing Speech SDK:', error);
+    }
+}
+
+// 샘플 변경 함수
+function changeSample(sampleNumber) {
+    currentSample = sampleNumber;
+    const practiceText = document.querySelector('.practice-text');
+    if (practiceText) {
+        practiceText.textContent = sampleTexts[sampleNumber];
+    }
+    
+    document.querySelectorAll('.sample-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.sample === String(sampleNumber)) {
+            btn.classList.add('active');
+        }
+    });
+
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
+    }
 }
 
 // Play native speaker audio
@@ -41,29 +72,35 @@ function playNativeSpeaker() {
         currentAudio = null;
     }
 
-    // GitHub Pages URL 사용
-    const audioUrl = `./native-speaker${currentSample}.mp3`;
-    currentAudio = new Audio(audioUrl);
-    
+    document.getElementById('status').textContent = 'Loading audio...';
     document.getElementById('playNative').disabled = true;
-    
-    currentAudio.play().catch(error => {
-        console.error('Error playing audio:', error);
-        document.getElementById('status').textContent = 'Error playing audio file';
-        document.getElementById('playNative').disabled = false;
-    });
+
+    currentAudio = new Audio();
+    currentAudio.src = `native-speaker${currentSample}.mp3`;
+    console.log('Loading audio:', currentAudio.src);
+
+    currentAudio.oncanplaythrough = () => {
+        document.getElementById('status').textContent = 'Playing audio...';
+        currentAudio.play()
+            .catch(error => {
+                console.error('Play error:', error);
+                document.getElementById('status').textContent = 'Error playing audio';
+                document.getElementById('playNative').disabled = false;
+            });
+    };
 
     currentAudio.onended = () => {
+        document.getElementById('status').textContent = 'Audio finished';
         document.getElementById('playNative').disabled = false;
     };
 
-    currentAudio.onloadstart = () => {
-        document.getElementById('status').textContent = 'Loading audio...';
+    currentAudio.onerror = (e) => {
+        console.error('Audio loading error:', e);
+        document.getElementById('status').textContent = 'Error loading audio';
+        document.getElementById('playNative').disabled = false;
     };
 
-    currentAudio.oncanplay = () => {
-        document.getElementById('status').textContent = 'Playing audio...';
-    };
+    currentAudio.load();
 }
 
 // Update volume indicator
@@ -227,36 +264,50 @@ function updateChart(scores) {
     });
 }
 
-// Event listeners
-document.addEventListener('DOMContentLoaded', () => {
-    initSpeechSDK();
-    
-    // 샘플 선택 버튼 이벤트 리스너
-    document.querySelectorAll('.sample-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const sampleNumber = parseInt(e.target.dataset.sample);
-            currentSample = sampleNumber;
-            
-            // 텍스트 업데이트
-            document.querySelector('.practice-text').textContent = sampleTexts[sampleNumber];
-            
-            // 버튼 스타일 업데이트
-            document.querySelectorAll('.sample-btn').forEach(b => {
-                b.classList.remove('active');
-            });
-            e.target.classList.add('active');
-            
-            // 오디오 정지
-            if (currentAudio) {
-                currentAudio.pause();
-                currentAudio = null;
+// Wait for DOM and SDK to load
+function waitForSDK() {
+    return new Promise((resolve) => {
+        const check = () => {
+            if (window.SpeechSDK) {
+                resolve();
+            } else {
+                setTimeout(check, 100);
             }
-        });
+        };
+        check();
     });
+}
+
+// Initialize everything when DOM is loaded
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('DOM loaded');
     
-    // 초기 텍스트 설정
-    document.querySelector('.practice-text').textContent = sampleTexts[1];
-    
-    document.getElementById('playNative').addEventListener('click', playNativeSpeaker);
-    document.getElementById('startRecording').addEventListener('click', startRecording);
+    try {
+        await waitForSDK();
+        console.log('SDK loaded');
+        
+        initSpeechSDK();
+        
+        // 초기 텍스트 설정
+        const practiceText = document.querySelector('.practice-text');
+        if (practiceText) {
+            console.log('Setting initial text');
+            practiceText.textContent = sampleTexts[1];
+        }
+        
+        // 이벤트 리스너 설정
+        document.querySelectorAll('.sample-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const sampleNumber = parseInt(e.target.dataset.sample);
+                changeSample(sampleNumber);
+            });
+        });
+        
+        document.getElementById('playNative').addEventListener('click', playNativeSpeaker);
+        document.getElementById('startRecording').addEventListener('click', startRecording);
+        
+        console.log('Initialization complete');
+    } catch (error) {
+        console.error('Initialization error:', error);
+    }
 });
