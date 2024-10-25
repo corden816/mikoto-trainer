@@ -209,25 +209,14 @@
             }
 
             // 네이티브 스피커 재생 기능
-            document.getElementById('playNative').onclick = () => {
-                const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
-                const ssml = `
-                    <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
-                        <voice name="en-US-JennyNeural">
-                            <prosody rate="0.9" pitch="+0Hz">
-                                ${document.getElementById('practiceText').innerText}
-                            </prosody>
-                        </voice>
-                    </speak>`;
-                
-                synthesizer.speakSsmlAsync(
-                    ssml,
-                    result => {
-                        synthesizer.close();
-                    },
-                    error => {
-                        console.error('Error playing native speaker:', error);
-                        synthesizer.close();
+        
+document.getElementById('playNative').onclick = () => {
+    const audio = new Audio('https://raw.githubusercontent.com/corden816/mikoto-trainer/main/native-speaker.mp3');
+    audio.play().catch(error => {
+        console.error('Error playing audio:', error);
+        document.getElementById('status').textContent = 'Error playing audio file. Please try again.';
+    });
+};
                     });
             };
 
