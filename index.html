@@ -7,41 +7,118 @@
     <script src="config.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
     <style>
-        /* 기존 스타일 유지 */
         .container {
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
             font-family: Arial, sans-serif;
         }
-        /* ... 기존 스타일 ... */
-        
-        /* 파형 그래프를 위한 새로운 스타일 */
+        .practice-text {
+            font-size: 20px;
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            border-radius: 8px;
+            line-height: 1.6;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:disabled {
+            background-color: #ccc;
+        }
+        .status {
+            margin: 10px 0;
+            color: #666;
+        }
+        .timer {
+            font-size: 20px;
+            color: #dc3545;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .volume-indicator {
+            width: 300px;
+            height: 20px;
+            background-color: #eee;
+            margin: 10px 0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .volume-bar {
+            width: 0%;
+            height: 100%;
+            background-color: #4CAF50;
+            transition: width 0.1s;
+        }
+        .result-container {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+            margin: 10px 0;
+            white-space: pre-line;
+        }
+        .feedback {
+            margin: 10px 0;
+            color: #666;
+            white-space: pre-line;
+        }
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            margin-top: 20px;
+        }
         .waveform-container {
             width: 100%;
             height: 100px;
             background-color: #f0f0f0;
             margin: 20px 0;
             border-radius: 8px;
-            position: relative;
-        }
-        
-        #waveformCanvas {
-            width: 100%;
-            height: 100%;
-            border-radius: 8px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- 기존 HTML 구조 유지 -->
+        <h1>English Pronunciation Practice</h1>
         
-        <!-- 파형 그래프를 위한 새로운 컨테이너 추가 -->
+        <div class="practice-text" id="practiceText">
+            The importance of clear communication cannot be overstated in today's global world. When speaking English, proper pronunciation helps ensure your message is understood correctly.
+        </div>
+
+        <div class="button-container">
+            <button id="playNative">Play Native Speaker</button>
+            <button id="startRecording">Start Speaking (30s)</button>
+            <button id="stopRecording" disabled>Stop Recording</button>
+        </div>
+
+        <div id="timer" class="timer"></div>
+        <div id="status" class="status"></div>
+
         <div class="waveform-container">
             <canvas id="waveformCanvas"></canvas>
         </div>
-        
+
+        <div id="volumeIndicator" class="volume-indicator">
+            <div id="volumeBar" class="volume-bar"></div>
+        </div>
+
         <div id="resultContainer" class="result-container">
             <div id="pronunciationScore" class="score"></div>
             <div id="feedback" class="feedback"></div>
@@ -55,132 +132,14 @@
             const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(config.apiKey, config.region);
             speechConfig.speechRecognitionLanguage = 'en-US';
 
-            // 발음 평가 설정
-            const practiceText = "The importance of clear communication cannot be overstated in today's global world. When speaking English, proper pronunciation helps ensure your message is understood correctly. Practice speaking clearly and confidently, paying attention to the rhythm and intonation of your words.";
-            
-            const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
-                practiceText,
-                SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
-                SpeechSDK.PronunciationAssessmentGranularity.Word,
-                true
-            );
-
             let audioContext;
             let analyser;
-            let waveformCanvas;
-            let waveformCtx;
-            let animationId;
-            
-            // 파형 그래프 초기화
-            function initWaveform() {
-                waveformCanvas = document.getElementById('waveformCanvas');
-                waveformCtx = waveformCanvas.getContext('2d');
-                
-                // 캔버스 크기 설정
-                waveformCanvas.width = waveformCanvas.offsetWidth;
-                waveformCanvas.height = waveformCanvas.offsetHeight;
-            }
+            let recognizer;
+            let timeLeft;
+            let recordingTimer;
+            const practiceText = document.getElementById('practiceText').innerText;
 
-            // 파형 그리기
-            function drawWaveform(dataArray) {
-                waveformCtx.fillStyle = '#f0f0f0';
-                waveformCtx.fillRect(0, 0, waveformCanvas.width, waveformCanvas.height);
-                
-                waveformCtx.lineWidth = 2;
-                waveformCtx.strokeStyle = '#4CAF50';
-                waveformCtx.beginPath();
-
-                const sliceWidth = waveformCanvas.width / dataArray.length;
-                let x = 0;
-
-                for (let i = 0; i < dataArray.length; i++) {
-                    const v = dataArray[i] / 128.0;
-                    const y = (v * waveformCanvas.height) / 2;
-
-                    if (i === 0) {
-                        waveformCtx.moveTo(x, y);
-                    } else {
-                        waveformCtx.lineTo(x, y);
-                    }
-
-                    x += sliceWidth;
-                }
-
-                waveformCtx.lineTo(waveformCanvas.width, waveformCanvas.height / 2);
-                waveformCtx.stroke();
-            }
-
-            // 녹음 시작
-            async function startRecording() {
-                try {
-                    if (!audioContext) {
-                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                        analyser = audioContext.createAnalyser();
-                        analyser.fftSize = 2048;
-                    }
-
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    const mediaStreamSource = audioContext.createMediaStreamSource(stream);
-                    mediaStreamSource.connect(analyser);
-
-                    // 파형 업데이트
-                    const dataArray = new Uint8Array(analyser.frequencyBinCount);
-                    function updateWaveform() {
-                        animationId = requestAnimationFrame(updateWaveform);
-                        analyser.getByteTimeDomainData(dataArray);
-                        drawWaveform(dataArray);
-                    }
-                    updateWaveform();
-
-                    // Speech SDK 설정
-                    const audioConfig = SpeechSDK.AudioConfig.fromStreamInput(stream);
-                    const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
-                    pronunciationAssessmentConfig.applyTo(recognizer);
-
-                    recognizer.recognized = (s, e) => {
-                        if (e.result.text) {
-                            const pronunciationResult = JSON.parse(
-                                e.result.properties.getProperty(SpeechSDK.PropertyId.SpeechServiceResponse_JsonResult)
-                            );
-
-                            // 점수 계산 및 표시
-                            const accuracyScore = pronunciationResult.NBest[0].PronunciationAssessment.AccuracyScore;
-                            const fluencyScore = pronunciationResult.NBest[0].PronunciationAssessment.FluencyScore;
-                            const completenessScore = pronunciationResult.NBest[0].PronunciationAssessment.CompletenessScore;
-                            
-                            const overallScore = Math.round((accuracyScore + fluencyScore + completenessScore) / 3);
-                            
-                            document.getElementById('pronunciationScore').textContent = 
-                                `Overall Score: ${overallScore}%\n` +
-                                `Accuracy: ${accuracyScore}%\n` +
-                                `Fluency: ${fluencyScore}%\n` +
-                                `Completeness: ${completenessScore}%`;
-                        }
-                    };
-
-                    recognizer.startContinuousRecognitionAsync();
-                } catch (error) {
-                    console.error('Error:', error);
-                }
-            }
-
-            // 녹음 중지
-            function stopRecording() {
-                if (animationId) {
-                    cancelAnimationFrame(animationId);
-                }
-                if (audioContext) {
-                    audioContext.close();
-                    audioContext = null;
-                }
-            }
-
-            // 이벤트 리스너 설정
-            initWaveform();
-            document.getElementById('startRecording').addEventListener('click', startRecording);
-            document.getElementById('stopRecording').addEventListener('click', stopRecording);
-            
-            // TTS 설정
+            // Native Speaker 재생
             document.getElementById('playNative').onclick = () => {
                 const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
                 const ssml = `
@@ -200,6 +159,209 @@
                         synthesizer.close();
                     });
             };
+
+            // 타이머 함수
+            function updateTimer() {
+                document.getElementById('timer').textContent = `Time remaining: ${timeLeft}s`;
+                if (timeLeft <= 0) {
+                    stopRecording();
+                } else {
+                    timeLeft--;
+                }
+            }
+
+            // 오디오 컨텍스트 초기화
+            async function initAudioContext() {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+            }
+
+            // 볼륨 표시기 업데이트
+            function updateVolumeIndicator(dataArray) {
+                const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                const volume = Math.min(100, Math.max(0, average * 2));
+                document.getElementById('volumeBar').style.width = volume + '%';
+            }
+
+            // 파형 그리기
+            function drawWaveform(dataArray, canvas) {
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#f0f0f0';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#4CAF50';
+                ctx.beginPath();
+
+                const sliceWidth = canvas.width / dataArray.length;
+                let x = 0;
+
+                for (let i = 0; i < dataArray.length; i++) {
+                    const v = dataArray[i] / 128.0;
+                    const y = (v * canvas.height) / 2;
+
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+
+                    x += sliceWidth;
+                }
+
+                ctx.lineTo(canvas.width, canvas.height / 2);
+                ctx.stroke();
+            }
+
+            // 차트 업데이트
+            function updateChart(words) {
+                const ctx = document.getElementById('pronunciationChart').getContext('2d');
+                
+                if (window.pronunciationChart) {
+                    window.pronunciationChart.destroy();
+                }
+
+                const labels = words.map(w => w.Word);
+                const accuracyScores = words.map(w => w.PronunciationAssessment.AccuracyScore);
+                
+                window.pronunciationChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Word Accuracy',
+                            data: accuracyScores,
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                title: {
+                                    display: true,
+                                    text: 'Accuracy Score (%)'
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    autoSkip: false,
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }
+                            }
+                        },
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Word-by-Word Pronunciation Accuracy'
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 녹음 시작
+            async function startRecording() {
+                if (!audioContext) {
+                    await initAudioContext();
+                }
+
+                timeLeft = 30;
+                updateTimer();
+                recordingTimer = setInterval(updateTimer, 1000);
+
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    const mediaStreamSource = audioContext.createMediaStreamSource(stream);
+                    mediaStreamSource.connect(analyser);
+
+                    // 실시간 오디오 시각화
+                    const waveformCanvas = document.getElementById('waveformCanvas');
+                    waveformCanvas.width = waveformCanvas.offsetWidth;
+                    waveformCanvas.height = waveformCanvas.offsetHeight;
+
+                    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                    function visualize() {
+                        requestAnimationFrame(visualize);
+                        analyser.getByteTimeDomainData(dataArray);
+                        drawWaveform(dataArray, waveformCanvas);
+                        updateVolumeIndicator(dataArray);
+                    }
+                    visualize();
+
+                    // 발음 평가 설정
+                    const audioConfig = SpeechSDK.AudioConfig.fromStreamInput(stream);
+                    const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
+                        practiceText,
+                        SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
+                        SpeechSDK.PronunciationAssessmentGranularity.Word,
+                        true
+                    );
+
+                    recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+                    pronunciationAssessmentConfig.applyTo(recognizer);
+
+                    recognizer.recognized = (s, e) => {
+                        if (e.result.text) {
+                            try {
+                                const jsonResult = e.result.properties.getProperty(SpeechSDK.PropertyId.SpeechServiceResponse_JsonResult);
+                                const pronunciationResult = JSON.parse(jsonResult);
+                                
+                                if (pronunciationResult.NBest && pronunciationResult.NBest[0].PronunciationAssessment) {
+                                    const assessment = pronunciationResult.NBest[0].PronunciationAssessment;
+                                    
+                                    document.getElementById('pronunciationScore').textContent = 
+                                        `Accuracy: ${assessment.AccuracyScore}%\n` +
+                                        `Pronunciation: ${assessment.PronScore}%\n` +
+                                        `Completeness: ${assessment.CompletenessScore}%\n` +
+                                        `Fluency: ${assessment.FluencyScore}%`;
+
+                                    document.getElementById('feedback').textContent = 
+                                        assessment.AccuracyScore >= 80 ? "Excellent pronunciation!" :
+                                        assessment.AccuracyScore >= 60 ? "Good pronunciation. Keep practicing!" :
+                                        "Keep practicing to improve your pronunciation.";
+
+                                    updateChart(pronunciationResult.NBest[0].Words);
+                                }
+                            } catch (error) {
+                                console.error('Error processing pronunciation result:', error);
+                            }
+                        }
+                    };
+
+                    document.getElementById('startRecording').disabled = true;
+                    document.getElementById('stopRecording').disabled = false;
+                    document.getElementById('status').textContent = 'Recording... Speak now!';
+
+                    recognizer.startContinuousRecognitionAsync();
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    document.getElementById('status').textContent = 'Error starting recording. Please check your microphone.';
+                }
+            }
+
+            // 녹음 중지
+            function stopRecording() {
+                clearInterval(recordingTimer);
+                if (recognizer) {
+                    recognizer.stopContinuousRecognitionAsync();
+                    document.getElementById('startRecording').disabled = false;
+                    document.getElementById('stopRecording').disabled = true;
+                    document.getElementById('status').textContent = 'Recording stopped';
+                    document.getElementById('volumeBar').style.width = '0%';
+                }
+            }
+
+            // 이벤트 리스너
+            document.getElementById('startRecording').addEventListener('click', startRecording);
+            document.getElementById('stopRecording').addEventListener('click', stopRecording);
         };
     </script>
 </body>
