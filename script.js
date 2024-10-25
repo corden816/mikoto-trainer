@@ -2,6 +2,7 @@ const config = {
     apiKey: "fad4e222a3854bb99ed337f837a4e21c",
     region: "koreacentral"
 };
+
 // Global variables
 let audioContext;
 let analyser;
@@ -10,34 +11,22 @@ let speechConfig;
 let audioConfig;
 let recognizer;
 let isRecording = false;
-let nativeSpeakerAudio;
+let currentAudio = null;
+let currentSample = 1;  // 기본값 설정
 
-// Initialize audio context
-async function initAudioContext() {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    analyser = audioContext.createAnalyser();
-    analyser.minDecibels = -90;
-    analyser.maxDecibels = -10;
-    analyser.smoothingTimeConstant = 0.85;
-}
+// 나머지 함수들은 그대로 유지...
 
-// Initialize Azure Speech SDK
-function initSpeechSDK() {
-    speechConfig = SpeechSDK.SpeechConfig.fromSubscription(config.apiKey, config.region);
-    speechConfig.speechRecognitionLanguage = "en-US";
-}
-
-// Load native speaker audio
-async function loadNativeSpeakerAudio() {
-    nativeSpeakerAudio = new Audio('native-speaker.mp3');
-    nativeSpeakerAudio.load();
-}
-
-// Play native speaker audio
+// Play native speaker audio 함수만 수정
 function playNativeSpeaker() {
     if (currentAudio) {
         currentAudio.pause();
         currentAudio = null;
+        currentAudio.onerror = (e) => {
+        console.error('Audio error:', e);
+        document.getElementById('status').textContent = `Error loading audio: ${audioUrl}`;
+        document.getElementById('playNative').disabled = false;
+    };
+}
     }
 
     // GitHub Pages URL 사용
@@ -56,7 +45,6 @@ function playNativeSpeaker() {
         document.getElementById('playNative').disabled = false;
     };
 
-    // 로딩 상태 표시 추가
     currentAudio.onloadstart = () => {
         document.getElementById('status').textContent = 'Loading audio...';
     };
@@ -66,126 +54,21 @@ function playNativeSpeaker() {
     };
 }
 
-// Update volume indicator
-function updateVolumeIndicator(stream) {
-    mediaStreamSource = audioContext.createMediaStreamSource(stream);
-    mediaStreamSource.connect(analyser);
-    
-    const dataArray = new Uint8Array(analyser.frequencyBinCount);
-    
-    function draw() {
-        if (!isRecording) return;
-        
-        requestAnimationFrame(draw);
-        analyser.getByteFrequencyData(dataArray);
-        
-        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-        const volume = Math.min(100, Math.max(0, average * 2));
-        
-        document.getElementById('volumeBar').style.width = volume + '%';
-    }
-    
-    draw();
-}
-
-// Start recording
-async function startRecording() {
-    if (!audioContext) {
-        await initAudioContext();
-    }
-    
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    updateVolumeIndicator(stream);
-    
-    audioConfig = SpeechSDK.AudioConfig.fromStreamInput(stream);
-    recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
-    
-    isRecording = true;
-    document.getElementById('startRecording').disabled = true;
-    document.getElementById('status').textContent = 'Recording... Speak now!';
-    
-    recognizer.recognizing = (s, e) => {
-        document.getElementById('status').textContent = `Recognizing: ${e.result.text}`;
-    };
-    
-    recognizer.recognized = (s, e) => {
-        if (e.result.text) {
-            analyzePronunciation(e.result);
-        }
-    };
-    
-    recognizer.startContinuousRecognitionAsync();
-    
-    // Stop recording after 5 seconds
-    setTimeout(stopRecording, 5000);
-}
-
-// Stop recording
-function stopRecording() {
-    if (recognizer) {
-        recognizer.stopContinuousRecognitionAsync();
-        isRecording = false;
-        document.getElementById('startRecording').disabled = false;
-        document.getElementById('status').textContent = 'Recording stopped';
-    }
-}
-
-// Analyze pronunciation
-function analyzePronunciation(result) {
-    // This is a simplified scoring mechanism. In reality, you'd want to use
-    // Azure's pronunciation assessment API for more accurate results
-    const confidenceScore = result.properties.getProperty(SpeechSDK.PropertyId.SpeechServiceResponse_JsonResult);
-    const score = Math.round(parseFloat(confidenceScore) * 100);
-    
-    document.getElementById('pronunciationScore').textContent = `Pronunciation Score: ${score}%`;
-    
-    let feedback = '';
-    if (score >= 90) {
-        feedback = 'Excellent! Native-like pronunciation.';
-    } else if (score >= 70) {
-        feedback = 'Good pronunciation. Keep practicing!';
-    } else {
-        feedback = 'Need more practice. Try listening to the native speaker again.';
-    }
-    
-    document.getElementById('feedback').textContent = feedback;
-    
-    updateChart(score);
-}
-
-// Update chart
-function updateChart(score) {
-    const ctx = document.getElementById('pronunciationChart').getContext('2d');
-    
-    if (window.pronunciationChart) {
-        window.pronunciationChart.destroy();
-    }
-    
-    window.pronunciationChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Your Score', 'Native Level'],
-            datasets: [{
-                label: 'Pronunciation Comparison',
-                data: [score, 100],
-                backgroundColor: ['#007bff', '#28a745']
-            }]
-        },
-        options: {
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100
-                }
-            }
-        }
-    });
-}
-
-// Event listeners
+// 이벤트 리스너 부분 수정
 document.addEventListener('DOMContentLoaded', () => {
     initSpeechSDK();
-    loadNativeSpeakerAudio();
+    
+    // 샘플 선택 버튼 이벤트 리스너 추가
+    document.querySelectorAll('.sample-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            currentSample = parseInt(e.target.dataset.sample);
+            // 버튼 스타일 업데이트
+            document.querySelectorAll('.sample-btn').forEach(b => {
+                b.classList.remove('active');
+            });
+            e.target.classList.add('active');
+        });
+    });
     
     document.getElementById('playNative').addEventListener('click', playNativeSpeaker);
     document.getElementById('startRecording').addEventListener('click', startRecording);
