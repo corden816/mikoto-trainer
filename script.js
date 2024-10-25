@@ -61,13 +61,18 @@ function playNativeSpeaker() {
     };
 
     currentAudio.onerror = (e) => {
-        console.error('Audio error:', e);
+        console.error('Audio loading error for:', currentAudio.src);
         document.getElementById('status').textContent = 'Error loading audio';
         document.getElementById('playNative').disabled = false;
     };
 
-    // 오디오 소스 설정 및 로드
-    currentAudio.src = `native-speaker${currentSample}.mp3`;
+    // 수정된 오디오 소스 경로
+    // GitHub Pages의 정확한 경로 사용
+    currentAudio.src = `https://corden816.github.io/mikoto-trainer/native-speaker${currentSample}.mp3`;
+    // 또는 상대 경로 사용
+    // currentAudio.src = `native-speaker${currentSample}.mp3`;
+    
+    console.log('Attempting to load:', currentAudio.src); // 디버깅용
     currentAudio.load();
 }
 
