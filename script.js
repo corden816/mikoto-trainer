@@ -17,7 +17,6 @@ const sampleTexts = {
     5: "Sample text 5"
 };
 
-// Initialize audio context
 // Initialize audio context on first interaction
 async function initAudioContext() {
     if (!audioContext) {
@@ -31,12 +30,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const startRecordingButton = document.getElementById('startRecording');
     const playNativeButton = document.getElementById('playNative');
 
-    // Add touchstart event for mobile compatibility
     startRecordingButton.addEventListener('click', startRecording);
-    startRecordingButton.addEventListener('touchstart', startRecording);
-
     playNativeButton.addEventListener('click', playNativeSpeaker);
-    playNativeButton.addEventListener('touchstart', playNativeSpeaker);
 });
 
 // Check if getUserMedia is available
@@ -49,62 +44,9 @@ async function startRecording() {
     try {
         await initAudioContext();
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        
-        updateVolumeIndicator(stream); // Volume indicator
-        
-        const referenceText = document.querySelector('.practice-text').textContent;
-
-        const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
-            referenceText,
-            SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
-            SpeechSDK.PronunciationAssessmentGranularity.Word,
-            true
-        );
-
-        audioConfig = SpeechSDK.AudioConfig.fromStreamInput(stream);
-        recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
-        pronunciationAssessmentConfig.applyTo(recognizer);
-
-        isRecording = true;
-        startRecordingButton.disabled = true;
-        document.getElementById('status').textContent = 'Recording... Speak now!';
-
-        recognizer.startContinuousRecognitionAsync();
-        
-        setTimeout(stopRecording, 30000); // 30초 후 자동 종료
-    } catch (error) {
-        console.error('Error starting recording:', error);
-        document.getElementById('status').textContent = 'Error accessing microphone on mobile';
-    }
-}
-
-
-    currentAudio.onended = () => {
-        document.getElementById('status').textContent = 'Audio finished';
-        document.getElementById('playNative').disabled = false;
-    };
-
-    currentAudio.onerror = () => {
-        console.error('Audio loading error');
-        document.getElementById('status').textContent = 'Error loading audio';
-        document.getElementById('playNative').disabled = false;
-    };
-
-    currentAudio.load();
-}
-
-// Start recording
-async function startRecording() {
-    if (!audioContext) {
-        await initAudioContext();
-    }
-
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        updateVolumeIndicator(stream); // Volume indicator to show real-time changes
+        updateVolumeIndicator(stream); 
 
         const referenceText = document.querySelector('.practice-text').textContent;
-        
         const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
             referenceText,
             SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
@@ -122,16 +64,14 @@ async function startRecording() {
 
         recognizer.recognizing = (s, e) => {
             document.getElementById('status').textContent = `Recognizing: ${e.result.text}`;
-            
-            // Adjust volume bar color based on recognition confidence level
             const confidenceLevel = e.result.confidence;
             const volumeBar = document.getElementById('volumeBar');
             if (confidenceLevel > 0.75) {
-                volumeBar.style.backgroundColor = '#28a745'; // Green for high confidence
+                volumeBar.style.backgroundColor = '#28a745';
             } else if (confidenceLevel > 0.5) {
-                volumeBar.style.backgroundColor = '#ffc107'; // Yellow for moderate confidence
+                volumeBar.style.backgroundColor = '#ffc107';
             } else {
-                volumeBar.style.backgroundColor = '#dc3545'; // Red for low confidence
+                volumeBar.style.backgroundColor = '#dc3545';
             }
         };
 
@@ -144,11 +84,10 @@ async function startRecording() {
 
         recognizer.startContinuousRecognitionAsync();
         
-        // Set recording timeout to 30 seconds
-        setTimeout(stopRecording, 30000);
+        setTimeout(stopRecording, 30000); // 30초 후 자동 종료
     } catch (error) {
         console.error('Error starting recording:', error);
-        document.getElementById('status').textContent = 'Error accessing microphone';
+        document.getElementById('status').textContent = 'Error accessing microphone on mobile';
     }
 }
 
@@ -160,7 +99,6 @@ function stopRecording() {
         document.getElementById('startRecording').disabled = false;
         document.getElementById('status').textContent = 'Recording stopped';
 
-        // Reset the volume bar color to its original state
         document.getElementById('volumeBar').style.backgroundColor = '#4CAF50';
 
         if (mediaStreamSource) {
@@ -171,8 +109,6 @@ function stopRecording() {
 
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('DOM loaded');
-    
     try {
         await waitForSDK();
         initSpeechSDK();
