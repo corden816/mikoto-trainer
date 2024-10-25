@@ -1,386 +1,246 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>M I K O T O</title>
-    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
-    <script src="config.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
-    <style>
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            font-family: Arial, sans-serif;
+import React, { useState, useRef, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Mic, PlayCircle, StopCircle } from 'lucide-react';
+import * as sdk from 'microsoft-cognitiveservices-speech-sdk';
+
+const PronunciationTrainer = () => {
+  const [selectedSample, setSelectedSample] = useState(1);
+  const [isRecording, setIsRecording] = useState(false);
+  const [timer, setTimer] = useState(30);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [score, setScore] = useState(null);
+  const [audioLevel, setAudioLevel] = useState(0);
+  const [detailedResults, setDetailedResults] = useState(null);
+  
+  // Azure Speech SDK configurations
+  const speechConfig = useRef(null);
+  const audioConfig = useRef(null);
+  const recognizer = useRef(null);
+  
+  const samples = [
+    { id: 1, text: "Sample text 1 for pronunciation practice." },
+    { id: 2, text: "Sample text 2 for pronunciation practice." },
+    { id: 3, text: "Sample text 3 for pronunciation practice." },
+    { id: 4, text: "Sample text 4 for pronunciation practice." },
+    { id: 5, text: "Sample text 5 for pronunciation practice." }
+  ];
+
+  // Initialize Azure Speech Service
+  useEffect(() => {
+    const subscriptionKey = "YOUR_AZURE_KEY"; // Azure 키를 여기에 입력
+    const region = "YOUR_REGION"; // Azure 리전을 여기에 입력
+    
+    speechConfig.current = sdk.SpeechConfig.fromSubscription(subscriptionKey, region);
+    speechConfig.current.speechRecognitionLanguage = "en-US";
+    
+    return () => {
+      if (recognizer.current) {
+        recognizer.current.close();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    let interval;
+    if (isRecording && timer > 0) {
+      interval = setInterval(() => {
+        setTimer(prev => prev - 1);
+      }, 1000);
+    } else if (timer === 0) {
+      stopRecording();
+    }
+    return () => clearInterval(interval);
+  }, [isRecording, timer]);
+
+  const playNativeSpeaker = () => {
+    // TTS 구현
+    const synthesizer = new sdk.SpeechSynthesizer(speechConfig.current);
+    const currentText = samples.find(s => s.id === selectedSample)?.text;
+    
+    synthesizer.speakTextAsync(
+      currentText,
+      result => {
+        synthesizer.close();
+        setIsPlaying(false);
+      },
+      error => {
+        console.log(error);
+        synthesizer.close();
+        setIsPlaying(false);
+      }
+    );
+    
+    setIsPlaying(true);
+  };
+
+  const startRecording = async () => {
+    try {
+      // 발음 평가 설정
+      const pronunciationAssessmentConfig = new sdk.PronunciationAssessmentConfig(
+        samples.find(s => s.id === selectedSample)?.text,
+        sdk.PronunciationAssessmentGradingSystem.HundredMark,
+        sdk.PronunciationAssessmentGranularity.Word,
+        true
+      );
+
+      audioConfig.current = sdk.AudioConfig.fromDefaultMicrophoneInput();
+      recognizer.current = new sdk.SpeechRecognizer(speechConfig.current, audioConfig.current);
+      
+      // 발음 평가 적용
+      pronunciationAssessmentConfig.applyTo(recognizer.current);
+
+      // 음성 레벨 모니터링
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      source.connect(analyser);
+      
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      const checkAudioLevel = () => {
+        analyser.getByteFrequencyData(dataArray);
+        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+        setAudioLevel(average);
+        if (isRecording) {
+          requestAnimationFrame(checkAudioLevel);
         }
-        .practice-text {
-            font-size: 20px;
-            margin: 20px 0;
-            padding: 20px;
-            background-color: #f0f0f0;
-            border-radius: 8px;
-            line-height: 1.6;
-        }
-        .button-container {
-            display: flex;
-            gap: 10px;
-            margin: 20px 0;
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-        }
-        button:disabled {
-            background-color: #ccc;
-        }
-        .status {
-            margin: 10px 0;
-            color: #666;
-        }
-        .timer {
-            font-size: 20px;
-            color: #dc3545;
-            margin: 10px 0;
-            font-weight: bold;
-        }
-        .volume-indicator {
-            width: 300px;
-            height: 20px;
-            background-color: #eee;
-            margin: 10px 0;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        .volume-bar {
-            width: 0%;
-            height: 100%;
-            background-color: #4CAF50;
-            transition: width 0.1s;
-        }
-        .result-container {
-            margin-top: 20px;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-        }
-        .score {
-            font-size: 24px;
-            font-weight: bold;
-            color: #007bff;
-            margin: 10px 0;
-            white-space: pre-line;
-        }
-        .feedback {
-            margin: 10px 0;
-            color: #666;
-            white-space: pre-line;
-        }
-        .chart-container {
-            width: 100%;
-            height: 300px;
-            margin-top: 20px;
-        }
-        .waveform-container {
-            width: 100%;
-            height: 100px;
-            background-color: #f0f0f0;
-            margin: 20px 0;
-            border-radius: 8px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>English Pronunciation Practice</h1>
+      };
+      checkAudioLevel();
+
+      // 음성 인식 및 평가 시작
+      recognizer.current.recognized = (s, e) => {
+        const pronunciationResult = sdk.PronunciationAssessmentResult.fromResult(e.result);
         
-        <div class="practice-text" id="practiceText">
-            Here's everything you need to know about the new Mcdonald's app. It's all the things you love about the Mcdonald's, at your finger tips. choose from a range of meals of your favorite new items and select the deal you want to redeem. whichever the way you claim your deal, be sure to tap the ...
-        </div>
-
-        <div class="button-container">
-            <button id="playNative">Play Native Speaker</button>
-            <button id="startRecording">Start Speaking (30s)</button>
-            <button id="stopRecording" disabled>Stop Recording</button>
-        </div>
-
-        <div id="timer" class="timer"></div>
-        <div id="status" class="status"></div>
-
-        <div class="waveform-container">
-            <canvas id="waveformCanvas"></canvas>
-        </div>
-
-        <div id="volumeIndicator" class="volume-indicator">
-            <div id="volumeBar" class="volume-bar"></div>
-        </div>
-
-        <div id="resultContainer" class="result-container">
-            <div id="pronunciationScore" class="score"></div>
-            <div id="feedback" class="feedback"></div>
-            <canvas id="pronunciationChart" class="chart-container"></canvas>
-        </div>
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            if (typeof SpeechSDK === 'undefined') {
-                document.getElementById('status').textContent = 'Speech SDK not loaded. Please check your internet connection.';
-                return;
-            }
-
-            const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(config.apiKey, config.region);
-            speechConfig.speechRecognitionLanguage = 'en-US';
-
-            let audioContext;
-            let analyser;
-            let recognizer;
-            let timeLeft;
-            let recordingTimer;
-            let animationFrame;
-            const practiceText = document.getElementById('practiceText').innerText;
-
-            // UI 요소
-            const playNativeBtn = document.getElementById('playNative');
-            const startRecordingBtn = document.getElementById('startRecording');
-            const stopRecordingBtn = document.getElementById('stopRecording');
-            const statusElement = document.getElementById('status');
-            const volumeBar = document.getElementById('volumeBar');
-            const waveformCanvas = document.getElementById('waveformCanvas');
-            const pronunciationScoreElement = document.getElementById('pronunciationScore');
-            const feedbackElement = document.getElementById('feedback');
-
-            // 웨이브폼 캔버스 초기화
-            waveformCanvas.width = waveformCanvas.offsetWidth;
-            waveformCanvas.height = waveformCanvas.offsetHeight;
-            const waveformCtx = waveformCanvas.getContext('2d');
-
-            // 타이머 함수
-            function updateTimer() {
-                document.getElementById('timer').textContent = `Time remaining: ${timeLeft}s`;
-                if (timeLeft <= 0) {
-                    stopRecording();
-                } else {
-                    timeLeft--;
-                }
-            }
-
-            // 웨이브폼 그리기
-            function drawWaveform(dataArray) {
-                waveformCtx.fillStyle = '#f0f0f0';
-                waveformCtx.fillRect(0, 0, waveformCanvas.width, waveformCanvas.height);
-                
-                waveformCtx.lineWidth = 2;
-                waveformCtx.strokeStyle = '#4CAF50';
-                waveformCtx.beginPath();
-
-                const sliceWidth = waveformCanvas.width / dataArray.length;
-                let x = 0;
-
-                for (let i = 0; i < dataArray.length; i++) {
-                    const v = dataArray[i] / 128.0;
-                    const y = (v * waveformCanvas.height) / 2;
-
-                    if (i === 0) {
-                        waveformCtx.moveTo(x, y);
-                    } else {
-                        waveformCtx.lineTo(x, y);
-                    }
-
-                    x += sliceWidth;
-                }
-
-                waveformCtx.lineTo(waveformCanvas.width, waveformCanvas.height / 2);
-                waveformCtx.stroke();
-            }
-
-            // 시각화 업데이트
-            function updateVisualization(dataArray) {
-                const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-                const volume = Math.min(100, Math.max(0, average * 2));
-                volumeBar.style.width = `${volume}%`;
-                drawWaveform(dataArray);
-            }
-               }
-            }
-
-            // 네이티브 스피커 재생 기능
-            document.getElementById('playNative').onclick = () => {
-                const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
-                const ssml = `
-                    <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
-                        <voice name="en-US-JennyNeural">
-                            <prosody rate="0.9" pitch="+0Hz">
-                                ${document.getElementById('practiceText').innerText}
-                            </prosody>
-                        </voice>
-                    </speak>`;
-                
-                synthesizer.speakSsmlAsync(
-                    ssml,
-                    result => {
-                        synthesizer.close();
-                    },
-                    error => {
-                        console.error('Error playing native speaker:', error);
-                        synthesizer.close();
-                    });
-            };
-
-            // 강세 패턴 분석 함수
-            function analyzeStressPattern(pitchData) {
-                if (pitchData.length === 0) return [];
-                
-                const stressPoints = [];
-                const threshold = calculatePitchThreshold(pitchData);
-                
-                for (let i = 1; i < pitchData.length - 1; i++) {
-                    if (pitchData[i] > threshold && 
-                        pitchData[i] > pitchData[i-1] && 
-                        pitchData[i] > pitchData[i+1]) {
-                        stressPoints.push({
-                            index: i,
-                            value: pitchData[i]
-                        });
-                    }
-                }
-                
-                return stressPoints;
-            }
-
-            // 피치 임계값 계산
-            function calculatePitchThreshold(pitchData) {
-                const avg = pitchData.reduce((a, b) => a + b) / pitchData.length;
-                const variance = pitchData.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / pitchData.length;
-                return avg + Math.sqrt(variance) * 0.5;
-            }
-
-            // 피드백 강화 함수
-            function generateDetailedFeedback(pronunciationScore, pitchScore, stressPoints) {
-                let feedback = [];
-                const { finalScores } = pronunciationScore;
-
-                // 발음 관련 피드백
-                if (finalScores.accuracy < 70) {
-                    feedback.push({
-                        category: 'Accuracy',
-                        message: "Your pronunciation accuracy needs improvement. Try to:",
-                        suggestions: [
-                            "- Break down difficult words into syllables",
-                            "- Practice each sound individually",
-                            "- Record and compare with native speaker"
-                        ]
-                    });
-                }
-
-                if (finalScores.pronunciation < 65) {
-                    feedback.push({
-                        category: 'Pronunciation',
-                        message: "Focus on specific sound improvements:",
-                        suggestions: [
-                            "- Pay attention to vowel sounds",
-                            "- Practice consonant clusters",
-                            "- Work on ending sounds of words"
-                        ]
-                    });
-                }
-
-                // 억양 관련 피드백
-                if (pitchScore < 60) {
-                    feedback.push({
-                        category: 'Intonation',
-                        message: "Your intonation pattern needs more variation:",
-                        suggestions: [
-                            "- Practice question intonation patterns",
-                            "- Emphasize important words",
-                            "- Use rising and falling tones appropriately"
-                        ]
-                    });
-                }
-
-                // 강세 패턴 피드백
-                if (stressPoints.length < 3) {
-                    feedback.push({
-                        category: 'Stress',
-                        message: "Work on word and sentence stress:",
-                        suggestions: [
-                            "- Emphasize content words",
-                            "- Reduce function words",
-                            "- Practice rhythm patterns"
-                        ]
-                    });
-                }
-
-                return feedback;
-            }
-
-            // 결과 표시 업데이트 함수
-            function updateResults(pronunciationScore, pitchScore, stressPoints) {
-                const detailedFeedback = generateDetailedFeedback(pronunciationScore, pitchScore, stressPoints);
-                const feedbackElement = document.getElementById('feedback');
-                
-                // 피드백 HTML 생성
-                let feedbackHTML = '<h3>Detailed Feedback</h3>';
-                detailedFeedback.forEach(fb => {
-                    feedbackHTML += `
-                        <div class="feedback-category">
-                            <h4>${fb.category}</h4>
-                            <p>${fb.message}</p>
-                            <ul>
-                                ${fb.suggestions.map(s => `<li>${s}</li>`).join('')}
-                            </ul>
-                        </div>
-                    `;
-                });
-                
-                feedbackElement.innerHTML = feedbackHTML;
-            }
-
-            // 이벤트 리스너 설정
-            document.getElementById('startRecording').addEventListener('click', startRecording);
-            document.getElementById('stopRecording').addEventListener('click', stopRecording);
-
-            // 오디오 시각화 설정
-            const setupVisualization = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = 500;
-                canvas.height = 200;
-                document.querySelector('.pitch-container').appendChild(canvas);
-                return canvas.getContext('2d');
-            };
-
-            // 오디오 시각화 업데이트
-            const updateVisualization = (ctx, data) => {
-                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-                ctx.beginPath();
-                ctx.moveTo(0, ctx.canvas.height / 2);
-                
-                const sliceWidth = ctx.canvas.width / data.length;
-                let x = 0;
-                
-                for (let i = 0; i < data.length; i++) {
-                    const y = (data[i] / 255.0) * ctx.canvas.height;
-                    if (i === 0) {
-                        ctx.moveTo(x, y);
-                    } else {
-                        ctx.lineTo(x, y);
-                    }
-                    x += sliceWidth;
-                }
-                
-                ctx.lineTo(ctx.canvas.width, ctx.canvas.height / 2);
-                ctx.stroke();
-            };
-
-            // 초기 설정
-            const ctx = setupVisualization();
-            ctx.strokeStyle = '#4CAF50';
-            ctx.lineWidth = 2;
+        setScore(pronunciationResult.pronunciationScore);
+        setDetailedResults({
+          accuracyScore: pronunciationResult.accuracyScore,
+          fluencyScore: pronunciationResult.fluencyScore,
+          completenessScore: pronunciationResult.completenessScore,
+          prosodyScore: pronunciationResult.prosodyScore
         });
-    </script>
-</body>
-</html>
+      };
+
+      recognizer.current.startContinuousRecognitionAsync();
+      setIsRecording(true);
+      setTimer(30);
+      
+    } catch (err) {
+      console.error('Error starting recording:', err);
+    }
+  };
+
+  const stopRecording = () => {
+    if (recognizer.current) {
+      recognizer.current.stopContinuousRecognitionAsync();
+      setIsRecording(false);
+      setTimer(30);
+    }
+  };
+
+  return (
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle className="text-2xl text-center">English Pronunciation Practice</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          {/* Sample Selection */}
+          <div className="flex gap-2 flex-wrap justify-center">
+            {samples.map(sample => (
+              <Button
+                key={sample.id}
+                variant={selectedSample === sample.id ? "default" : "outline"}
+                onClick={() => setSelectedSample(sample.id)}
+              >
+                Sample {sample.id}
+              </Button>
+            ))}
+          </div>
+
+          {/* Practice Text */}
+          <div className="border rounded-lg p-4 bg-gray-50">
+            <p className="text-lg text-center">
+              {samples.find(s => s.id === selectedSample)?.text}
+            </p>
+          </div>
+
+          {/* Controls */}
+          <div className="flex justify-center gap-4">
+            <Button
+              onClick={playNativeSpeaker}
+              disabled={isRecording || isPlaying}
+              className="flex items-center gap-2"
+            >
+              <PlayCircle className="w-5 h-5" />
+              Play Native Speaker
+            </Button>
+            
+            {!isRecording ? (
+              <Button
+                onClick={startRecording}
+                disabled={isPlaying}
+                className="flex items-center gap-2"
+              >
+                <Mic className="w-5 h-5" />
+                Start Speaking ({timer}s)
+              </Button>
+            ) : (
+              <Button
+                onClick={stopRecording}
+                variant="destructive"
+                className="flex items-center gap-2"
+              >
+                <StopCircle className="w-5 h-5" />
+                Stop Recording
+              </Button>
+            )}
+          </div>
+
+          {/* Audio Level Indicator */}
+          <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-blue-500 transition-all duration-100"
+              style={{ width: `${(audioLevel / 255) * 100}%` }}
+            />
+          </div>
+
+          {/* Detailed Results */}
+          {detailedResults && (
+            <div className="space-y-4">
+              <div className="text-2xl font-bold text-center">
+                Overall Score: {score?.toFixed(1)}%
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="border rounded p-3">
+                  <div className="font-semibold">Accuracy</div>
+                  <div className="text-xl">{detailedResults.accuracyScore?.toFixed(1)}%</div>
+                </div>
+                <div className="border rounded p-3">
+                  <div className="font-semibold">Fluency</div>
+                  <div className="text-xl">{detailedResults.fluencyScore?.toFixed(1)}%</div>
+                </div>
+                <div className="border rounded p-3">
+                  <div className="font-semibold">Completeness</div>
+                  <div className="text-xl">{detailedResults.completenessScore?.toFixed(1)}%</div>
+                </div>
+                <div className="border rounded p-3">
+                  <div className="font-semibold">Prosody (Intonation)</div>
+                  <div className="text-xl">{detailedResults.prosodyScore?.toFixed(1)}%</div>
+                </div>
+              </div>
+              <div className="text-center text-gray-600">
+                {score >= 90 ? 'Excellent pronunciation!' :
+                 score >= 80 ? 'Very good pronunciation!' :
+                 score >= 70 ? 'Good pronunciation, keep practicing!' :
+                 'Keep practicing to improve your pronunciation!'}
+              </div>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default PronunciationTrainer;
