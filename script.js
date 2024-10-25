@@ -11,62 +11,89 @@ let speechConfig;
 let audioConfig;
 let recognizer;
 let isRecording = false;
-let currentAudio = null;
-let currentSample = 1;  // 기본값 설정
+let currentAudio = null;  // 변수 추가
+let currentSample = 1;    // 변수 추가
 
-// 나머지 함수들은 그대로 유지...
+// Initialize audio context
+async function initAudioContext() {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioContext.createAnalyser();
+    analyser.minDecibels = -90;
+    analyser.maxDecibels = -10;
+    analyser.smoothingTimeConstant = 0.85;
+}
 
-// Play native speaker audio 함수만 수정
+// Initialize Azure Speech SDK
+function initSpeechSDK() {
+    speechConfig = SpeechSDK.SpeechConfig.fromSubscription(config.apiKey, config.region);
+    speechConfig.speechRecognitionLanguage = "en-US";
+}
+
+// Play native speaker audio - 이 함수를 완전히 수정
 function playNativeSpeaker() {
+    // 이전 오디오가 있다면 정지
     if (currentAudio) {
         currentAudio.pause();
         currentAudio = null;
-        currentAudio.onerror = (e) => {
-        console.error('Audio error:', e);
-        document.getElementById('status').textContent = `Error loading audio: ${audioUrl}`;
-        document.getElementById('playNative').disabled = false;
-    };
-}
     }
 
-    // GitHub Pages URL 사용
-    const audioUrl = `./native-speaker${currentSample}.mp3`;
-    currentAudio = new Audio(audioUrl);
-    
+    // 상태 업데이트
+    document.getElementById('status').textContent = 'Loading audio...';
     document.getElementById('playNative').disabled = true;
+
+    // 새 오디오 생성
+    currentAudio = new Audio();
     
-    currentAudio.play().catch(error => {
-        console.error('Error playing audio:', error);
-        document.getElementById('status').textContent = 'Error playing audio file';
-        document.getElementById('playNative').disabled = false;
-    });
+    // 오디오 이벤트 핸들러 설정
+    currentAudio.oncanplaythrough = () => {
+        document.getElementById('status').textContent = 'Playing audio...';
+        currentAudio.play()
+            .catch(error => {
+                console.error('Play error:', error);
+                document.getElementById('status').textContent = 'Error playing audio';
+                document.getElementById('playNative').disabled = false;
+            });
+    };
 
     currentAudio.onended = () => {
+        document.getElementById('status').textContent = 'Audio finished';
         document.getElementById('playNative').disabled = false;
     };
 
-    currentAudio.onloadstart = () => {
-        document.getElementById('status').textContent = 'Loading audio...';
+    currentAudio.onerror = (e) => {
+        console.error('Audio error:', e);
+        document.getElementById('status').textContent = 'Error loading audio';
+        document.getElementById('playNative').disabled = false;
     };
 
-    currentAudio.oncanplay = () => {
-        document.getElementById('status').textContent = 'Playing audio...';
-    };
+    // 오디오 소스 설정 및 로드
+    currentAudio.src = `native-speaker${currentSample}.mp3`;
+    currentAudio.load();
 }
 
-// 이벤트 리스너 부분 수정
+// 나머지 함수들은 그대로 유지...
+
+// Event listeners - 이 부분 수정
 document.addEventListener('DOMContentLoaded', () => {
     initSpeechSDK();
     
-    // 샘플 선택 버튼 이벤트 리스너 추가
+    // 샘플 선택 버튼 이벤트 리스너
     document.querySelectorAll('.sample-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            currentSample = parseInt(e.target.dataset.sample);
+            const sampleNumber = parseInt(e.target.dataset.sample);
+            currentSample = sampleNumber;
+            
             // 버튼 스타일 업데이트
             document.querySelectorAll('.sample-btn').forEach(b => {
                 b.classList.remove('active');
             });
             e.target.classList.add('active');
+            
+            // 오디오 정지
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
         });
     });
     
