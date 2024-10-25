@@ -70,7 +70,7 @@ function playNativeSpeaker() {
     document.getElementById('status').textContent = 'Loading audio...';
     document.getElementById('playNative').disabled = true;
 
-    currentAudio = new Audio(`audio/native-speaker${currentSample}.mp3`);
+    currentAudio = new Audio(`audio/native-speaker${currentSample}.mp3?v=1`);
     
     currentAudio.oncanplaythrough = () => {
         document.getElementById('status').textContent = 'Playing audio...';
