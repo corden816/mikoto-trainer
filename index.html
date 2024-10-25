@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>English Pronunciation Practice</title>
+    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+    <script src="config.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <style>
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .practice-text {
+            font-size: 20px;
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            border-radius: 8px;
+            line-height: 1.6;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:disabled {
+            background-color: #ccc;
+        }
+        .status {
+            margin: 10px 0;
+            color: #666;
+        }
+        .timer {
+            font-size: 20px;
+            color: #dc3545;
+            margin: 10px 0;
+            font-weight: bold;
+            text-align: center;
+        }
+        .volume-indicator {
+            width: 300px;
+            height: 20px;
+            background-color: #eee;
+            margin: 10px 0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .volume-bar {
+            width: 0%;
+            height: 100%;
+            background-color: #4CAF50;
+            transition: width 0.1s;
+        }
+        .result-container {
+            margin-top: 20px;
+        }
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+            margin: 10px 0;
+        }
+        .feedback {
+            margin: 10px 0;
+            color: #666;
+        }
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            margin-top: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>English Pronunciation Practice</h1>
+        
+        <div class="practice-text">
+            The importance of clear communication cannot be overstated in today's global world. When speaking English, proper pronunciation helps ensure your message is understood correctly. Practice speaking clearly and confidently, paying attention to the rhythm and intonation of your words.
+        </div>
+
+        <div class="button-container">
+            <button id="playNative">Play Native Speaker</button>
+            <button id="startRecording">Start Speaking (30s)</button>
+            <button id="stopRecording" disabled>Stop Recording</button>
+        </div>
+
+        <div id="timer" class="timer"></div>
+        <div id="status" class="status"></div>
+
+        <div id="volumeIndicator" class="volume-indicator">
+            <div id="volumeBar" class="volume-bar"></div>
+        </div>
+
+        <div id="resultContainer" class="result-container">
+            <div id="pronunciationScore" class="score"></div>
+            <div id="feedback" class="feedback"></div>
+            <canvas id="pronunciationChart" class="chart-container"></canvas>
+        </div>
+    </div>
+
+    <script>
+        window.onload = function() {
+            if (typeof SpeechSDK === 'undefined') {
+                document.getElementById('status').textContent = 'Speech SDK not loaded. Please check your internet connection.';
+                return;
+            }
+
+            const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(config.apiKey, config.region);
+            speechConfig.speechRecognitionLanguage = 'en-US';
+
+            let audioContext;
+            let analyser;
+            let mediaStreamSource;
+            let isRecording = false;
+            let timeLeft;
+            let recordingTimer;
+            let currentChart = null;
+            let recognizer = null;
+
+            const practiceText = "The importance of clear communication cannot be overstated in today's global world. When speaking English, proper pronunciation helps ensure your message is understood correctly. Practice speaking clearly and confidently, paying attention to the rhythm and intonation of your words.";
+
+            // Initialize audio context
+            async function initAudioContext() {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.minDecibels = -90;
+                analyser.maxDecibels = -10;
+                analyser.smoothingTimeConstant = 0.85;
+            }
+
+            // Update volume indicator
+            function updateVolumeIndicator(stream) {
+                mediaStreamSource = audioContext.createMediaStreamSource(stream);
+                mediaStreamSource.connect(analyser);
+                
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                
+                function draw() {
+                    if (!isRecording) return;
+                    
+                    requestAnimationFrame(draw);
+                    analyser.getByteFrequencyData(dataArray);
+                    
+                    const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                    const volume = Math.min(100, Math.max(0, average * 2));
+                    
+                    document.getElementById('volumeBar').style.width = volume + '%';
+                }
+                
+                draw();
+            }
+
+            // Timer function
+            function updateTimer() {
+                document.getElementById('timer').textContent = `Time remaining: ${timeLeft}s`;
+                if (timeLeft <= 0) {
+                    stopRecording();
+                } else {
+                    timeLeft--;
+                }
+            }
+
+            // Start recording
+            async function startRecording() {
+                if (!audioContext) {
+                    await initAudioContext();
+                }
+                
+                timeLeft = 30;
+                updateTimer();
+                recordingTimer = setInterval(updateTimer, 1000);
+                
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    updateVolumeIndicator(stream);
+                    
+                    const audioConfig = SpeechSDK.AudioConfig.fromStreamInput(stream);
+                    recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+                    
+                    isRecording = true;
+                    document.getElementById('startRecording').disabled = true;
+                    document.getElementById('stopRecording').disabled = false;
+                    document.getElementById('status').textContent = 'Recording... Speak now!';
+                    
+                    recognizer.recognizing = (s, e) => {
+                        document.getElementById('status').textContent = `Recognizing: ${e.result.text}`;
+                    };
+                    
+                    recognizer.recognized = (s, e) => {
+                        if (e.result.text) {
+                            analyzePronunciation(e.result);
+                        }
+                    };
+                    
+                    recognizer.startContinuousRecognitionAsync();
+                } catch (error) {
+                    console.error('Error starting recording:', error);
+                    document.getElementById('status').textContent = 'Error starting recording. Please check your microphone.';
+                }
+            }
+
+            // Stop recording
+            function stopRecording() {
+                if (recognizer) {
+                    recognizer.stopContinuousRecognitionAsync();
+                    clearInterval(recordingTimer);
+                    isRecording = false;
+                    document.getElementById('startRecording').disabled = false;
+                    document.getElementById('stopRecording').disabled = true;
+                    document.getElementById('status').textContent = 'Recording stopped';
+                    document.getElementById('volumeBar').style.width = '0%';
+                }
+            }
+
+            // Analyze pronunciation
+            function analyzePronunciation(result) {
+                const confidenceScore = result.properties.getProperty(SpeechSDK.PropertyId.SpeechServiceResponse_JsonResult);
+                try {
+                    const response = JSON.parse(confidenceScore);
+                    const accuracyScore = response.NBest[0].PronunciationAssessment.AccuracyScore;
+                    const fluencyScore = response.NBest[0].PronunciationAssessment.FluencyScore;
+                    const completenessScore = response.NBest[0].PronunciationAssessment.CompletenessScore;
+                    
+                    const overallScore = Math.round((accuracyScore + fluencyScore + completenessScore) / 3);
+                    
+                    document.getElementById('pronunciationScore').textContent = `Pronunciation Score: ${overallScore}%`;
+                    
+                    let feedback = `Detailed Feedback:\n`;
+                    feedback += `Accuracy: ${accuracyScore}% - ${getScoreFeedback(accuracyScore, 'accuracy')}\n`;
+                    feedback += `Fluency: ${fluencyScore}% - ${getScoreFeedback(fluencyScore, 'fluency')}\n`;
+                    feedback += `Completeness: ${completenessScore}% - ${getScoreFeedback(completenessScore, 'completeness')}`;
+                    
+                    document.getElementById('feedback').textContent = feedback;
+                    
+                    updateChart(response.NBest[0].Words);
+                } catch (error) {
+                    console.error('Error analyzing pronunciation:', error);
+                }
+            }
+
+            // Get score feedback
+            function getScoreFeedback(score, type) {
+                if (score >= 90) {
+                    return type === 'accuracy' ? 'Excellent pronunciation!' :
+                           type === 'fluency' ? 'Very natural speech flow!' : 'Perfect completion!';
+                } else if (score >= 70) {
+                    return type === 'accuracy' ? 'Good pronunciation, keep practicing.' :
+                           type === 'fluency' ? 'Good rhythm, work on transitions.' : 'Most words covered.';
+                } else {
+                    return type === 'accuracy' ? 'Focus on clearer pronunciation.' :
+                           type === 'fluency' ? 'Try to speak more smoothly.' : 'Try to include all words.';
+                }
+            }
+
+            // Update chart
+            function updateChart(words) {
+                const ctx = document.getElementById('pronunciationChart').getContext('2d');
+                
+                if (currentChart) {
+                    currentChart.destroy();
+                }
+                
+                const labels = words.map(w => w.Word);
+                const accuracyScores = words.map(w => w.PronunciationAssessment.AccuracyScore);
+                
+                currentChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Word Accuracy',
+                            data: accuracyScores,
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                title: {
+                                    display: true,
+                                    text: 'Accuracy Score'
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    autoSkip: false,
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Play native speaker
+            document.getElementById('playNative').onclick = () => {
+                const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
+                const ssml = `
+                    <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
+                        <voice name="en-US-JennyNeural">
+                            <prosody rate="0.9">
+                                ${practiceText}
+                            </prosody>
+                        </voice>
+                    </speak>`;
+                
+                synthesizer.speakSsmlAsync(
+                    ssml,
+                    result => {
+                        if (result) {
+                            synthesizer.close();
+                        }
+                    },
+                    error => {
+                        console.log(error);
+                        synthesizer.close();
+                    });
+            };
+
+            // Event listeners
+            document.getElementById('startRecording').addEventListener('click', startRecording);
+            document.getElementById('stopRecording').addEventListener('click', stopRecording);
+        };
+    </script>
+</body>
+</html>
