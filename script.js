@@ -35,9 +35,35 @@ async function loadNativeSpeakerAudio() {
 
 // Play native speaker audio
 function playNativeSpeaker() {
-    if (nativeSpeakerAudio) {
-        nativeSpeakerAudio.play();
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
     }
+
+    // GitHub Pages URL 사용
+    const audioUrl = `./native-speaker${currentSample}.mp3`;
+    currentAudio = new Audio(audioUrl);
+    
+    document.getElementById('playNative').disabled = true;
+    
+    currentAudio.play().catch(error => {
+        console.error('Error playing audio:', error);
+        document.getElementById('status').textContent = 'Error playing audio file';
+        document.getElementById('playNative').disabled = false;
+    });
+
+    currentAudio.onended = () => {
+        document.getElementById('playNative').disabled = false;
+    };
+
+    // 로딩 상태 표시 추가
+    currentAudio.onloadstart = () => {
+        document.getElementById('status').textContent = 'Loading audio...';
+    };
+
+    currentAudio.oncanplay = () => {
+        document.getElementById('status').textContent = 'Playing audio...';
+    };
 }
 
 // Update volume indicator
