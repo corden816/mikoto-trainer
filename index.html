@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>English Pronunciation Practice</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-cognitiveservices-speech-sdk/1.32.0/microsoft.cognitiveservices.speech.sdk.bundle.js"></script>
+    <style>
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .practice-text {
+            font-size: 20px;
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            border-radius: 8px;
+            line-height: 1.6;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:disabled {
+            background-color: #ccc;
+        }
+        .status {
+            margin: 10px 0;
+            color: #666;
+        }
+        .timer {
+            font-size: 20px;
+            color: #dc3545;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .volume-indicator {
+            width: 300px;
+            height: 20px;
+            background-color: #eee;
+            margin: 10px 0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .volume-bar {
+            width: 0%;
+            height: 100%;
+            background-color: #4CAF50;
+            transition: width 0.1s;
+        }
+        .result-container {
+            margin-top: 20px;
+        }
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+            margin: 10px 0;
+        }
+        .feedback {
+            margin: 10px 0;
+            color: #666;
+        }
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            margin-top: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>English Pronunciation Practice</h1>
+        
+        <div class="practice-text">
+            The importance of clear communication cannot be overstated in today's global world. When speaking English, proper pronunciation helps ensure your message is understood correctly. Practice speaking clearly and confidently, paying attention to the rhythm and intonation of your words.
+        </div>
+
+        <div class="button-container">
+            <button id="playBtn">Play Native Speaker</button>
+            <button id="startBtn">Start Speaking (30s)</button>
+            <button id="stopBtn" disabled>Stop Recording</button>
+        </div>
+
+        <div id="timer" class="timer"></div>
+        <div id="status" class="status"></div>
+
+        <div id="volumeIndicator" class="volume-indicator">
+            <div id="volumeBar" class="volume-bar"></div>
+        </div>
+
+        <div id="resultContainer" class="result-container">
+            <div id="pronunciationScore" class="score"></div>
+            <div id="feedback" class="feedback"></div>
+            <canvas id="pronunciationChart" class="chart-container"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Azure Speech SDK 설정
+        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription('YOUR_SUBSCRIPTION_KEY', 'YOUR_REGION');
+        speechConfig.speechRecognitionLanguage = 'en-US';
+
+        // 오디오 설정
+        let audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+        let recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+
+        const practiceText = "The importance of clear communication cannot be overstated in today's global world. When speaking English, proper pronunciation helps ensure your message is understood correctly. Practice speaking clearly and confidently, paying attention to the rhythm and intonation of your words.";
+
+        // 발음 평가 설정
+        const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
+            practiceText,
+            SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
+            SpeechSDK.PronunciationAssessmentGranularity.Phoneme,
+            true
+        );
+
+        // UI 요소
+        const playBtn = document.getElementById('playBtn');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const timer = document.getElementById('timer');
+        const status = document.getElementById('status');
+        const volumeBar = document.getElementById('volumeBar');
+        const pronunciationScore = document.getElementById('pronunciationScore');
+        const feedback = document.getElementById('feedback');
+        const canvas = document.getElementById('pronunciationChart');
+        const ctx = canvas.getContext('2d');
+
+        let recordingTimer;
+        let timeLeft;
+        let currentChart = null;
+
+        // 타이머 함수
+        function updateTimer() {
+            timer.textContent = `Time remaining: ${timeLeft}s`;
+            if (timeLeft <= 0) {
+                stopRecording();
+            } else {
+                timeLeft--;
+            }
+        }
+
+        // Native Speaker 재생
+        playBtn.onclick = () => {
+            const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
+            synthesizer.speakTextAsync(
+                practiceText,
+                result => {
+                    synthesizer.close();
+                },
+                error => {
+                    console.log(error);
+                    synthesizer.close();
+                });
+        };
+
+        // 음성 인식 시작
+        startBtn.onclick = () => {
+            startRecording();
+        };
+
+        // 음성 인식 중지
+        stopBtn.onclick = () => {
+            stopRecording();
+        };
+
+        function startRecording() {
+            // UI 초기화
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            pronunciationScore.textContent = '';
+            feedback.textContent = '';
+            if (currentChart) {
+                currentChart.destroy();
+            }
+            
+            // 타이머 설정 (30초)
+            timeLeft = 30;
+            updateTimer();
+            recordingTimer = setInterval(updateTimer, 1000);
+            
+            status.textContent = "Listening...";
+            
+            // 음성 레벨 모니터링
+            recognizer.recognizing = (s, e) => {
+                const volume = Math.min(100, e.result.properties.getProperty('Volume') * 2);
+                volumeBar.style.width = `${volume}%`;
+            };
+
+            // 발음 평가 결과 처리
+            recognizer.recognized = (s, e) => {
+                if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
+                    const pronunciationResult = JSON.parse(
+                        e.result.properties.getProperty(SpeechSDK.PropertyId.SpeechServiceResponse_JsonResult)
+                    );
+
+                    // 전체 발음 점수 표시
+                    const accuracyScore = pronunciationResult.NBest[0].PronunciationAssessment.AccuracyScore;
+                    const fluencyScore = pronunciationResult.NBest[0].PronunciationAssessment.FluencyScore;
+                    const completenessScore = pronunciationResult.NBest[0].PronunciationAssessment.CompletenessScore;
+                    
+                    const overallScore = Math.round((accuracyScore + fluencyScore + completenessScore) / 3);
+                    pronunciationScore.textContent = `Overall Score: ${overallScore}%`;
+
+                    // 피드백 생성
+                    generateFeedback(pronunciationResult);
+
+                    // 프로소디 차트 업데이트
+                    updateProsodyChart(pronunciationResult);
+                }
+            };
+
+            // 발음 평가 시작
+            pronunciationAssessmentConfig.applyTo(recognizer);
+            recognizer.startContinuousRecognitionAsync();
+        }
+
+        function stopRecording() {
+            clearInterval(recordingTimer);
+            recognizer.stopContinuousRecognitionAsync();
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            status.textContent = "Recording stopped";
+            volumeBar.style.width = "0%";
+        }
+
+        // 피드백 생성 함수
+        function generateFeedback(result) {
+            const assessment = result.NBest[0].PronunciationAssessment;
+            let feedbackText = "Detailed Feedback:\n";
+
+            feedbackText += `Accuracy: ${assessment.AccuracyScore}% - `;
+            if (assessment.AccuracyScore >= 90) {
+                feedbackText += "Excellent pronunciation clarity!\n";
+            } else if (assessment.AccuracyScore >= 70) {
+                feedbackText += "Good pronunciation, keep practicing specific sounds.\n";
+            } else {
+                feedbackText += "Focus on clearer articulation of individual sounds.\n";
+            }
+
+            feedbackText += `Fluency: ${assessment.FluencyScore}% - `;
+            if (assessment.FluencyScore >= 90) {
+                feedbackText += "Very natural speech flow!\n";
+            } else if (assessment.FluencyScore >= 70) {
+                feedbackText += "Good rhythm, work on smoother transitions.\n";
+            } else {
+                feedbackText += "Practice speaking more smoothly with fewer pauses.\n";
+            }
+
+            feedbackText += `Completeness: ${assessment.CompletenessScore}% - `;
+            if (assessment.CompletenessScore >= 90) {
+                feedbackText += "Excellent coverage of all words!";
+            } else if (assessment.CompletenessScore >= 70) {
+                feedbackText += "Most words pronounced, try to include all words.";
+            } else {
+                feedbackText += "Try to pronounce all words in the text.";
+            }
+
+            feedback.textContent = feedbackText;
+        }
+
+        // 프로소디 차트 업데이트 함수
+        function updateProsodyChart(result) {
+            const words = result.NBest[0].Words;
+            const data = {
+                labels: words.map(w => w.Word),
+                datasets: [
+                    {
+                        label: 'Accuracy Score',
+                        data: words.map(w => w.PronunciationAssessment.AccuracyScore),
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Duration Score',
+                        data: words.map(w => w.PronunciationAssessment.DurationScore),
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            };
+
+            // 차트 크기 설정
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+
+            // 이전 차트 제거
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            // 새 차트 생성
+            currentChart = new Chart(ctx, {
+                type: 'bar',
+                data: data,
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Score'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                autoSkip: true,
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Word-by-Word Pronunciation Analysis'
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+</body>
+</html>
