@@ -1,3 +1,14 @@
+// Initialize Azure Speech SDK
+function initSpeechSDK() {
+    if (window.SpeechSDK) {
+        speechConfig = SpeechSDK.SpeechConfig.fromSubscription(window.config.apiKey, window.config.region);
+        speechConfig.speechRecognitionLanguage = "en-US";
+        console.log('Speech SDK initialized successfully');
+    } else {
+        console.error('Speech SDK not found');
+    }
+}
+
 let audioContext;
 let analyser;
 let mediaStreamSource;
@@ -172,13 +183,3 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Initialization error:', error);
     }
 });
-// Initialize Azure Speech SDK
-function initSpeechSDK() {
-    if (window.SpeechSDK) {
-        speechConfig = SpeechSDK.SpeechConfig.fromSubscription(window.config.apiKey, window.config.region);
-        speechConfig.speechRecognitionLanguage = "en-US";
-        console.log('Speech SDK initialized successfully');
-    } else {
-        console.error('Speech SDK not found');
-    }
-}
