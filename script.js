@@ -41,37 +41,32 @@ function playNativeSpeaker() {
         currentAudio = null;
     }
 
-    document.getElementById('status').textContent = 'Loading audio...';
+    // GitHub Pages URL 사용
+    const audioUrl = `./native-speaker${currentSample}.mp3`;
+    currentAudio = new Audio(audioUrl);
+    
     document.getElementById('playNative').disabled = true;
-
-    currentAudio = new Audio();
-    currentAudio.src = `./native-speaker${currentSample}.mp3`;
-    console.log('Loading audio:', currentAudio.src);
-
-    currentAudio.oncanplaythrough = () => {
-        document.getElementById('status').textContent = 'Playing audio...';
-        currentAudio.play()
-            .catch(error => {
-                console.error('Play error:', error);
-                document.getElementById('status').textContent = 'Error playing audio';
-                document.getElementById('playNative').disabled = false;
-            });
-    };
+    
+    currentAudio.play().catch(error => {
+        console.error('Error playing audio:', error);
+        document.getElementById('status').textContent = 'Error playing audio file';
+        document.getElementById('playNative').disabled = false;
+    });
 
     currentAudio.onended = () => {
-        document.getElementById('status').textContent = 'Audio finished';
         document.getElementById('playNative').disabled = false;
     };
 
-    currentAudio.onerror = (e) => {
-        console.error('Audio loading error:', e);
-        document.getElementById('status').textContent = 'Error loading audio';
-        document.getElementById('playNative').disabled = false;
+    currentAudio.onloadstart = () => {
+        document.getElementById('status').textContent = 'Loading audio...';
     };
 
-    currentAudio.load();
+    currentAudio.oncanplay = () => {
+        document.getElementById('status').textContent = 'Playing audio...';
+    };
 }
 
+// Update volume indicator
 function updateVolumeIndicator(stream) {
     mediaStreamSource = audioContext.createMediaStreamSource(stream);
     mediaStreamSource.connect(analyser);
@@ -93,6 +88,7 @@ function updateVolumeIndicator(stream) {
     draw();
 }
 
+// Start recording
 async function startRecording() {
     if (!audioContext) {
         await initAudioContext();
@@ -140,6 +136,7 @@ async function startRecording() {
     }
 }
 
+// Stop recording
 function stopRecording() {
     if (recognizer) {
         recognizer.stopContinuousRecognitionAsync();
@@ -153,6 +150,7 @@ function stopRecording() {
     }
 }
 
+// Analyze pronunciation
 function analyzePronunciation(pronunciationResult) {
     const accuracyScore = pronunciationResult.accuracyScore;
     const fluencyScore = pronunciationResult.fluencyScore;
@@ -183,6 +181,7 @@ function analyzePronunciation(pronunciationResult) {
     });
 }
 
+// Update chart
 function updateChart(scores) {
     const ctx = document.getElementById('pronunciationChart').getContext('2d');
     
@@ -228,30 +227,36 @@ function updateChart(scores) {
     });
 }
 
+// Event listeners
 document.addEventListener('DOMContentLoaded', () => {
     initSpeechSDK();
     
-    // 초기 텍스트 설정
-    document.querySelector('.practice-text').textContent = sampleTexts[1];
-    
-    document.getElementById('playNative').addEventListener('click', playNativeSpeaker);
-    document.getElementById('startRecording').addEventListener('click', startRecording);
-    
+    // 샘플 선택 버튼 이벤트 리스너
     document.querySelectorAll('.sample-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const sampleNumber = parseInt(e.target.dataset.sample);
             currentSample = sampleNumber;
+            
+            // 텍스트 업데이트
             document.querySelector('.practice-text').textContent = sampleTexts[sampleNumber];
             
+            // 버튼 스타일 업데이트
             document.querySelectorAll('.sample-btn').forEach(b => {
                 b.classList.remove('active');
             });
             e.target.classList.add('active');
             
+            // 오디오 정지
             if (currentAudio) {
                 currentAudio.pause();
                 currentAudio = null;
             }
         });
     });
+    
+    // 초기 텍스트 설정
+    document.querySelector('.practice-text').textContent = sampleTexts[1];
+    
+    document.getElementById('playNative').addEventListener('click', playNativeSpeaker);
+    document.getElementById('startRecording').addEventListener('click', startRecording);
 });
