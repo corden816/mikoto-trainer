@@ -1,5 +1,3 @@
-// Azure Speech 설정은 config.js에서 가져옴
-// Global variables
 let audioContext;
 let analyser;
 let mediaStreamSource;
@@ -12,8 +10,7 @@ let currentSample = 1;
 
 // 샘플 텍스트
 const sampleTexts = {
-    1: `Whenever you walk along the street of small town of Sasebo, Japan, you will notice the long waiting line in front of the hamburger house. And looking around, you will find so many more hamburger places along the street. Then you might be thinking, why hamburger is so popular here? It's even a Japan. 
-The hidden story of Sasebo hamburger is back to 1940's. During the World War 2, Sasebo was IJN's one of the biggest naval base. Several shipyards and factories for supply were located there.`,
+    1: "Sample text 1",
     2: "Sample text 2",
     3: "Sample text 3",
     4: "Sample text 4",
@@ -24,23 +21,16 @@ The hidden story of Sasebo hamburger is back to 1940's. During the World War 2, 
 async function initAudioContext() {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     analyser = audioContext.createAnalyser();
-    analyser.minDecibels = -90;
-    analyser.maxDecibels = -10;
-    analyser.smoothingTimeConstant = 0.85;
 }
 
 // Initialize Azure Speech SDK
 function initSpeechSDK() {
-    try {
-        if (window.SpeechSDK) {
-            speechConfig = SpeechSDK.SpeechConfig.fromSubscription(window.config.apiKey, window.config.region);
-            speechConfig.speechRecognitionLanguage = "en-US";
-            console.log('Speech SDK initialized successfully');
-        } else {
-            console.error('Speech SDK not found');
-        }
-    } catch (error) {
-        console.error('Error initializing Speech SDK:', error);
+    if (window.SpeechSDK) {
+        speechConfig = SpeechSDK.SpeechConfig.fromSubscription(window.config.apiKey, window.config.region);
+        speechConfig.speechRecognitionLanguage = "en-US";
+        console.log('Speech SDK initialized successfully');
+    } else {
+        console.error('Speech SDK not found');
     }
 }
 
@@ -51,7 +41,7 @@ function changeSample(sampleNumber) {
     if (practiceText) {
         practiceText.textContent = sampleTexts[sampleNumber];
     }
-    
+
     document.querySelectorAll('.sample-btn').forEach(btn => {
         btn.classList.remove('active');
         if (btn.dataset.sample === String(sampleNumber)) {
@@ -75,18 +65,16 @@ function playNativeSpeaker() {
     document.getElementById('status').textContent = 'Loading audio...';
     document.getElementById('playNative').disabled = true;
 
+    // 경로를 수정하여 오디오 파일 로드
     currentAudio = new Audio();
-    currentAudio.src = `native-speaker${currentSample}.mp3`;
-    console.log('Loading audio:', currentAudio.src);
-
+    currentAudio.src = `audio/native-speaker${currentSample}.mp3`; // audio 경로가 포함된 파일 경로
     currentAudio.oncanplaythrough = () => {
         document.getElementById('status').textContent = 'Playing audio...';
-        currentAudio.play()
-            .catch(error => {
-                console.error('Play error:', error);
-                document.getElementById('status').textContent = 'Error playing audio';
-                document.getElementById('playNative').disabled = false;
-            });
+        currentAudio.play().catch(error => {
+            console.error('Play error:', error);
+            document.getElementById('status').textContent = 'Error playing audio';
+            document.getElementById('playNative').disabled = false;
+        });
     };
 
     currentAudio.onended = () => {
@@ -94,8 +82,8 @@ function playNativeSpeaker() {
         document.getElementById('playNative').disabled = false;
     };
 
-    currentAudio.onerror = (e) => {
-        console.error('Audio loading error:', e);
+    currentAudio.onerror = () => {
+        console.error('Audio loading error');
         document.getElementById('status').textContent = 'Error loading audio';
         document.getElementById('playNative').disabled = false;
     };
@@ -103,34 +91,12 @@ function playNativeSpeaker() {
     currentAudio.load();
 }
 
-// Update volume indicator
-function updateVolumeIndicator(stream) {
-    mediaStreamSource = audioContext.createMediaStreamSource(stream);
-    mediaStreamSource.connect(analyser);
-    
-    const dataArray = new Uint8Array(analyser.frequencyBinCount);
-    
-    function draw() {
-        if (!isRecording) return;
-        
-        requestAnimationFrame(draw);
-        analyser.getByteFrequencyData(dataArray);
-        
-        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-        const volume = Math.min(100, Math.max(0, average * 2));
-        
-        document.getElementById('volumeBar').style.width = volume + '%';
-    }
-    
-    draw();
-}
-
 // Start recording
 async function startRecording() {
     if (!audioContext) {
         await initAudioContext();
     }
-    
+
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         updateVolumeIndicator(stream);
@@ -143,29 +109,27 @@ async function startRecording() {
             SpeechSDK.PronunciationAssessmentGranularity.Word,
             true
         );
-        
+
         audioConfig = SpeechSDK.AudioConfig.fromStreamInput(stream);
         recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
-        
         pronunciationAssessmentConfig.applyTo(recognizer);
-        
+
         isRecording = true;
         document.getElementById('startRecording').disabled = true;
         document.getElementById('status').textContent = 'Recording... Speak now!';
-        
+
         recognizer.recognizing = (s, e) => {
             document.getElementById('status').textContent = `Recognizing: ${e.result.text}`;
         };
-        
+
         recognizer.recognized = (s, e) => {
             if (e.result.text) {
                 const pronunciationResult = SpeechSDK.PronunciationAssessmentResult.fromResult(e.result);
                 analyzePronunciation(pronunciationResult);
             }
         };
-        
+
         recognizer.startContinuousRecognitionAsync();
-        
         setTimeout(stopRecording, 5000);
     } catch (error) {
         console.error('Error starting recording:', error);
@@ -180,102 +144,11 @@ function stopRecording() {
         isRecording = false;
         document.getElementById('startRecording').disabled = false;
         document.getElementById('status').textContent = 'Recording stopped';
-        
+
         if (mediaStreamSource) {
             mediaStreamSource.disconnect();
         }
     }
-}
-
-// Analyze pronunciation
-function analyzePronunciation(pronunciationResult) {
-    const accuracyScore = pronunciationResult.accuracyScore;
-    const fluencyScore = pronunciationResult.fluencyScore;
-    const pronunciationScore = pronunciationResult.pronunciationScore;
-    const completenessScore = pronunciationResult.completenessScore;
-    
-    const overallScore = Math.round((accuracyScore + fluencyScore + pronunciationScore + completenessScore) / 4);
-    
-    document.getElementById('pronunciationScore').textContent = `Pronunciation Score: ${overallScore}%`;
-    
-    let feedback = '';
-    if (overallScore >= 90) {
-        feedback = 'Excellent! Native-like pronunciation.';
-    } else if (overallScore >= 70) {
-        feedback = 'Good pronunciation. Keep practicing!';
-    } else {
-        feedback = 'Need more practice. Try listening to the native speaker again.';
-    }
-    
-    document.getElementById('feedback').textContent = feedback;
-    
-    updateChart({
-        accuracy: accuracyScore,
-        fluency: fluencyScore,
-        pronunciation: pronunciationScore,
-        completeness: completenessScore,
-        overall: overallScore
-    });
-}
-
-// Update chart
-function updateChart(scores) {
-    const ctx = document.getElementById('pronunciationChart').getContext('2d');
-    
-    if (window.pronunciationChart) {
-        window.pronunciationChart.destroy();
-    }
-    
-    window.pronunciationChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Accuracy', 'Fluency', 'Pronunciation', 'Completeness', 'Overall'],
-            datasets: [{
-                label: 'Pronunciation Scores',
-                data: [
-                    scores.accuracy,
-                    scores.fluency,
-                    scores.pronunciation,
-                    scores.completeness,
-                    scores.overall
-                ],
-                backgroundColor: [
-                    '#007bff',
-                    '#28a745',
-                    '#ffc107',
-                    '#17a2b8',
-                    '#dc3545'
-                ]
-            }]
-        },
-        options: {
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100
-                }
-            },
-            plugins: {
-                legend: {
-                    display: false
-                }
-            }
-        }
-    });
-}
-
-// Wait for DOM and SDK to load
-function waitForSDK() {
-    return new Promise((resolve) => {
-        const check = () => {
-            if (window.SpeechSDK) {
-                resolve();
-            } else {
-                setTimeout(check, 100);
-            }
-        };
-        check();
-    });
 }
 
 // Initialize everything when DOM is loaded
@@ -284,29 +157,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     try {
         await waitForSDK();
-        console.log('SDK loaded');
-        
         initSpeechSDK();
-        
-        // 초기 텍스트 설정
+
         const practiceText = document.querySelector('.practice-text');
         if (practiceText) {
-            console.log('Setting initial text');
             practiceText.textContent = sampleTexts[1];
         }
-        
-        // 이벤트 리스너 설정
+
         document.querySelectorAll('.sample-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const sampleNumber = parseInt(e.target.dataset.sample);
                 changeSample(sampleNumber);
             });
         });
-        
+
         document.getElementById('playNative').addEventListener('click', playNativeSpeaker);
         document.getElementById('startRecording').addEventListener('click', startRecording);
-        
-        console.log('Initialization complete');
     } catch (error) {
         console.error('Initialization error:', error);
     }
