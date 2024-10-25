@@ -80,25 +80,31 @@ function playNativeSpeaker() {
 
 // Event listeners - 이 부분 수정
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded'); // 디버깅용
     initSpeechSDK();
     
-    // 샘플 선택 버튼 이벤트 리스너
+    // 초기 텍스트 설정을 명시적으로 수행
+    const practiceText = document.querySelector('.practice-text');
+    if (practiceText) {
+        console.log('Setting initial text'); // 디버깅용
+        practiceText.textContent = sampleTexts[1];
+    } else {
+        console.error('Practice text element not found'); // 디버깅용
+    }
+    
+    // 버튼 이벤트 리스너 설정
     document.querySelectorAll('.sample-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
+            console.log('Sample button clicked:', e.target.dataset.sample); // 디버깅용
             const sampleNumber = parseInt(e.target.dataset.sample);
             currentSample = sampleNumber;
+            practiceText.textContent = sampleTexts[sampleNumber];
             
             // 버튼 스타일 업데이트
             document.querySelectorAll('.sample-btn').forEach(b => {
                 b.classList.remove('active');
             });
             e.target.classList.add('active');
-            
-            // 오디오 정지
-            if (currentAudio) {
-                currentAudio.pause();
-                currentAudio = null;
-            }
         });
     });
     
