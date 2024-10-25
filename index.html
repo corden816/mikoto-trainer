@@ -4,17 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>English Pronunciation Practice</title>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: 'unsafe-inline' 'unsafe-eval'; img-src 'self' https: data:; media-src 'self' https: blob:;">
     <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="/mikoto-trainer/styles.css">
-    <script src="/mikoto-trainer/script.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    <script src="config.js"></script>
 </head>
 <body>
     <div class="container">
         <h1>English Pronunciation Practice</h1>
 
-        <!-- 샘플 선택 버튼들 -->
         <div class="sample-selector">
             <button class="sample-btn active" data-sample="1">Sample 1</button>
             <button class="sample-btn" data-sample="2">Sample 2</button>
@@ -23,39 +21,28 @@
             <button class="sample-btn" data-sample="5">Sample 5</button>
         </div>
 
-        <!-- 연습할 텍스트 표시 영역 -->
-        <div class="practice-text">
-            Sample text will be displayed here
-        </div>
+        <div class="practice-text"></div>
 
-        <!-- 컨트롤 버튼들 -->
         <div class="button-container">
             <button id="playNative" class="btn">Play Native Speaker</button>
             <button id="startRecording" class="btn">Start Speaking</button>
         </div>
 
-        <!-- 상태 표시 -->
         <div id="status" class="status"></div>
 
-        <!-- 음성 레벨 표시기 -->
         <div id="volumeIndicator" class="volume-indicator">
             <div id="volumeBar" class="volume-bar"></div>
         </div>
 
-        <!-- 결과 표시 영역 -->
         <div id="resultContainer" class="result-container">
-            <!-- 점수 표시 -->
             <div id="pronunciationScore" class="score"></div>
-            <!-- 피드백 메시지 -->
             <div id="feedback" class="feedback"></div>
-            <!-- 차트 표시 영역 -->
             <div class="chart-container">
                 <canvas id="pronunciationChart"></canvas>
             </div>
         </div>
     </div>
 
-    <!-- 스크립트는 body 끝 부분에 위치 -->
     <script src="script.js"></script>
 </body>
 </html>
