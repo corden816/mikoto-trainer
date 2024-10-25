@@ -4,6 +4,13 @@ const config = {
 };
 
 // Global variables
+const sampleTexts = {
+    1: "여기에 첫 번째 예문을 넣으세요",
+    2: "두 번째 예문",
+    3: "세 번째 예문",
+    4: "네 번째 예문",
+    5: "다섯 번째 예문"
+};
 let audioContext;
 let analyser;
 let mediaStreamSource;
@@ -242,6 +249,30 @@ function updateChart(scores) {
 }
 
 // Event listeners
+document.querySelectorAll('.sample-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        const sampleNumber = parseInt(e.target.dataset.sample);
+        currentSample = sampleNumber;
+        
+        // 텍스트 업데이트 추가
+        document.querySelector('.practice-text').textContent = sampleTexts[sampleNumber];
+        
+        // 버튼 스타일 업데이트
+        document.querySelectorAll('.sample-btn').forEach(b => {
+            b.classList.remove('active');
+        });
+        e.target.classList.add('active');
+        
+        // 오디오 정지
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio = null;
+        }
+    });
+});
+
+// 초기 텍스트 설정 추가
+document.querySelector('.practice-text').textContent = sampleTexts[1];
 document.addEventListener('DOMContentLoaded', () => {
     initSpeechSDK();
     changeSample(1);
