@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>M I K O T O</title>
+    <title>mikoto</title>
     <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
     <script src="config.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
@@ -144,7 +144,7 @@
             let animationFrame;
             const practiceText = document.getElementById('practiceText').innerText;
 
-            // UI 요소
+            // UI 요소들
             const playNativeBtn = document.getElementById('playNative');
             const startRecordingBtn = document.getElementById('startRecording');
             const stopRecordingBtn = document.getElementById('stopRecording');
@@ -153,6 +153,42 @@
             const waveformCanvas = document.getElementById('waveformCanvas');
             const pronunciationScoreElement = document.getElementById('pronunciationScore');
             const feedbackElement = document.getElementById('feedback');
+
+            // 네이티브 스피커 재생 기능
+            playNativeBtn.onclick = () => {
+                // MP3 파일과 Azure TTS를 모두 지원하도록 수정
+                try {
+                    // 먼저 MP3 파일 재생 시도
+                    const audio = new Audio('https://raw.githubusercontent.com/corden816/mikoto-trainer/main/native-speaker.mp3');
+                    audio.onerror = () => {
+                        // MP3 파일 재생 실패 시 Azure TTS로 폴백
+                        const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
+                        const ssml = `
+                            <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
+                                <voice name="en-US-JennyNeural">
+                                    <prosody rate="0.9">${practiceText}</prosody>
+                                </voice>
+                            </speak>`;
+                        
+                        synthesizer.speakSsmlAsync(
+                            ssml,
+                            result => {
+                                synthesizer.close();
+                            },
+                            error => {
+                                console.error('Error with TTS:', error);
+                                synthesizer.close();
+                                statusElement.textContent = 'Error playing audio. Please try again.';
+                            });
+                    };
+                    audio.play().catch(error => {
+                        audio.onerror(); // Trigger the fallback
+                    });
+                } catch (error) {
+                    console.error('Error playing audio:', error);
+                    statusElement.textContent = 'Error playing audio. Please try again.';
+                }
+            };
 
             // 웨이브폼 캔버스 초기화
             waveformCanvas.width = waveformCanvas.offsetWidth;
