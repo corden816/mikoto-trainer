@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Pronunciation Practice</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: 'unsafe-inline' 'unsafe-eval'; img-src 'self' https: data:; media-src 'self' https: blob:;">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>English Pronunciation Practice</h1>
+
+        <div class="sample-selector">
+            <button class="sample-btn active" data-sample="1">Sample 1</button>
+            <button class="sample-btn" data-sample="2">Sample 2</button>
+            <button class="sample-btn" data-sample="3">Sample 3</button>
+            <button class="sample-btn" data-sample="4">Sample 4</button>
+            <button class="sample-btn" data-sample="5">Sample 5</button>
+        </div>
+
+        <div class="practice-text">
+            Sample text will be displayed here
+        </div>
+
+        <div class="button-container">
+            <button id="playNative" class="btn">Play Native Speaker</button>
+            <button id="startRecording" class="btn">Start Speaking</button>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <div id="volumeIndicator" class="volume-indicator">
+            <div id="volumeBar" class="volume-bar"></div>
+        </div>
+
+        <div id="resultContainer" class="result-container">
+            <div id="pronunciationScore" class="score"></div>
+            <div id="feedback" class="feedback"></div>
+            <div class="chart-container">
+                <canvas id="pronunciationChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
