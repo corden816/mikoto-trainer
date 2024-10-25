@@ -52,6 +52,7 @@ async function initAudioContext() {
 
 // Mobile-friendly event listeners for buttons
 document.addEventListener('DOMContentLoaded', () => {
+    console.log("Checking if SpeechSDK is loaded:", window.SpeechSDK); // SDK 로드 확인
     const startRecordingButton = document.getElementById('startRecording');
     const playNativeButton = document.getElementById('playNative');
 
