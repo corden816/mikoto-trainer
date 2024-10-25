@@ -272,12 +272,12 @@
                                 if (pronunciationResult.NBest && pronunciationResult.NBest[0].PronunciationAssessment) {
                                     const assessment = pronunciationResult.NBest[0].PronunciationAssessment;
                                     
-                                    // 새로운 가중치 적용
+                                    // 새로운 가중치 적용 및 낮춤
                                     const weights = {
-                                        accuracy: 0.4,    // 정확도 가중치 (기존보다 높임)
-                                        pronunciation: 0.3, // 발음 가중치
-                                        completeness: 0.2, // 완성도 가중치
-                                        fluency: 0.1      // 유창성 가중치 (기존보다 낮춤)
+                                        accuracy: 0.3,    // 정확도 가중치 낮춤
+                                        pronunciation: 0.25, // 발음 가중치 낮춤
+                                        completeness: 0.25, // 완성도 가중치 낮춤
+                                        fluency: 0.2      // 유창성 가중치 조금 낮춤
                                     };
 
                                     // 기본 점수 계산
@@ -290,10 +290,10 @@
 
                                     // 패널티 적용
                                     const penalties = {
-                                        accuracy: rawScores.accuracy < 70 ? 0.8 : 1,      // 정확도가 70% 미만이면 20% 감점
-                                        pronunciation: rawScores.pronunciation < 65 ? 0.8 : 1, // 발음이 65% 미만이면 20% 감점
-                                        completeness: rawScores.completeness < 80 ? 0.9 : 1,  // 완성도가 80% 미만이면 10% 감점
-                                        fluency: rawScores.fluency < 60 ? 0.9 : 1         // 유창성이 60% 미만이면 10% 감점
+                                        accuracy: rawScores.accuracy < 70 ? 0.7 : 1,      // 정확도가 70% 미만이면 30% 감점
+                                        pronunciation: rawScores.pronunciation < 65 ? 0.7 : 1, // 발음이 65% 미만이면 30% 감점
+                                        completeness: rawScores.completeness < 80 ? 0.8 : 1,  // 완성도가 80% 미만이면 20% 감점
+                                        fluency: rawScores.fluency < 60 ? 0.8 : 1         // 유창성이 60% 미만이면 20% 감점
                                     };
 
                                     // 최종 점수 계산
@@ -429,4 +429,5 @@
     </script>
 </body>
 </html>
+
 
