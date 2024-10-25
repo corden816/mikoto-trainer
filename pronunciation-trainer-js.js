@@ -4,13 +4,6 @@ const config = {
 };
 
 // Global variables
-const sampleTexts = {
-    1: "여기에 첫 번째 예문을 넣으세요",
-    2: "두 번째 예문",
-    3: "세 번째 예문",
-    4: "네 번째 예문",
-    5: "다섯 번째 예문"
-};
 let audioContext;
 let analyser;
 let mediaStreamSource;
@@ -21,11 +14,10 @@ let isRecording = false;
 let currentAudio = null;
 let currentSample = 1;
 
-// 샘플 텍스트 (나중에 실제 텍스트로 교체)
+// 샘플 텍스트
 const sampleTexts = {
-    1: "Whenever you walk along the street of small town of Sasebo, Japan, you will notice the long waiting line in front of the hamburger house. And looking around, you will find so many more hamburger places along the street. Then you might be thinking, why hamburger is so popular here? It’s even a Japan. 
-The hidden story of Sasebo hamburger is back to 1940’s. During the World War 2, Sasebo was IJN’s one of the biggest naval base. Several shipyards and factories for supply were located there.
-",
+    1: `Whenever you walk along the street of small town of Sasebo, Japan, you will notice the long waiting line in front of the hamburger house. And looking around, you will find so many more hamburger places along the street. Then you might be thinking, why hamburger is so popular here? It's even a Japan. 
+The hidden story of Sasebo hamburger is back to 1940's. During the World War 2, Sasebo was IJN's one of the biggest naval base. Several shipyards and factories for supply were located there.`,
     2: "Sample text 2",
     3: "Sample text 3",
     4: "Sample text 4",
@@ -54,19 +46,39 @@ function playNativeSpeaker() {
         currentAudio = null;
     }
 
-    const audioUrl = `https://raw.githubusercontent.com/corden816/mikoto-trainer/main/native-speaker${currentSample}.mp3`;
-    currentAudio = new Audio(audioUrl);
-    
+    // 상태 업데이트
+    document.getElementById('status').textContent = 'Loading audio...';
     document.getElementById('playNative').disabled = true;
+
+    // 새 오디오 생성
+    currentAudio = new Audio();
     
-    currentAudio.play().catch(error => {
-        console.error('Error playing audio:', error);
-        document.getElementById('playNative').disabled = false;
-    });
+    // 오디오 이벤트 핸들러 설정
+    currentAudio.oncanplaythrough = () => {
+        document.getElementById('status').textContent = 'Playing audio...';
+        currentAudio.play()
+            .catch(error => {
+                console.error('Play error:', error);
+                document.getElementById('status').textContent = 'Error playing audio';
+                document.getElementById('playNative').disabled = false;
+            });
+    };
 
     currentAudio.onended = () => {
+        document.getElementById('status').textContent = 'Audio finished';
         document.getElementById('playNative').disabled = false;
     };
+
+    currentAudio.onerror = (e) => {
+        console.error('Audio loading error:', e);
+        document.getElementById('status').textContent = 'Error loading audio';
+        document.getElementById('playNative').disabled = false;
+    };
+
+    // 오디오 소스 설정 및 로드
+    currentAudio.src = `native-speaker${currentSample}.mp3`;
+    console.log('Loading audio:', currentAudio.src);
+    currentAudio.load();
 }
 
 // 샘플 변경 함수
@@ -249,30 +261,6 @@ function updateChart(scores) {
 }
 
 // Event listeners
-document.querySelectorAll('.sample-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        const sampleNumber = parseInt(e.target.dataset.sample);
-        currentSample = sampleNumber;
-        
-        // 텍스트 업데이트 추가
-        document.querySelector('.practice-text').textContent = sampleTexts[sampleNumber];
-        
-        // 버튼 스타일 업데이트
-        document.querySelectorAll('.sample-btn').forEach(b => {
-            b.classList.remove('active');
-        });
-        e.target.classList.add('active');
-        
-        // 오디오 정지
-        if (currentAudio) {
-            currentAudio.pause();
-            currentAudio = null;
-        }
-    });
-});
-
-// 초기 텍스트 설정 추가
-document.querySelector('.practice-text').textContent = sampleTexts[1];
 document.addEventListener('DOMContentLoaded', () => {
     initSpeechSDK();
     changeSample(1);
