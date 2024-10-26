@@ -98,16 +98,23 @@ async function startRecording() {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         console.log("Microphone access granted");
         
-        // updateVolumeIndicator 함수 호출 제거
-        // updateVolumeIndicator(stream); 
-
         const referenceText = document.querySelector('.practice-text').textContent;
+        if (!referenceText) {
+            console.error("Reference text not found");
+            return;
+        }
+
         const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
             referenceText,
             SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
             SpeechSDK.PronunciationAssessmentGranularity.Word,
             true
         );
+
+        if (!speechConfig) {
+            console.error("Speech SDK configuration is missing");
+            return;
+        }
 
         audioConfig = SpeechSDK.AudioConfig.fromStreamInput(stream);
         recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
@@ -118,12 +125,14 @@ async function startRecording() {
         document.getElementById('status').textContent = 'Recording... Speak now!';
 
         recognizer.recognizing = (s, e) => {
+            console.log(`Recognizing: ${e.result.text}`);
             document.getElementById('status').textContent = `Recognizing: ${e.result.text}`;
         };
 
         recognizer.recognized = (s, e) => {
             if (e.result.text) {
                 const pronunciationResult = SpeechSDK.PronunciationAssessmentResult.fromResult(e.result);
+                console.log("Pronunciation Result:", pronunciationResult);
                 analyzePronunciation(pronunciationResult);
             }
         };
@@ -132,14 +141,10 @@ async function startRecording() {
         setTimeout(stopRecording, 30000); // Auto-stop after 30 seconds
     } catch (error) {
         console.error('Error accessing microphone:', error);
-        document.getElementById('status').textContent = `Error accessing microphone: ${error.name}`;
-        if (error.name === "NotAllowedError") {
-            alert("Please allow microphone access to use this feature.");
-        } else if (error.name === "NotFoundError") {
-            alert("No microphone found. Please check your device.");
-        }
+        document.getElementById('status').textContent = `Error accessing microphone: ${error.message}`;
     }
 }
+
 
 // 통합된 DOMContentLoaded 이벤트 핸들러
 document.addEventListener('DOMContentLoaded', async () => {
