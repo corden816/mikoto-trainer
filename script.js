@@ -146,6 +146,7 @@ async function startRecording() {
 }
 
 
+
 // 통합된 DOMContentLoaded 이벤트 핸들러
 document.addEventListener('DOMContentLoaded', async () => {
     try {
