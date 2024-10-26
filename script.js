@@ -1,3 +1,23 @@
+// Global variables
+let audioContext;
+let analyser;
+let mediaStreamSource;
+let speechConfig;
+let audioConfig;
+let recognizer;
+let isRecording = false;
+let currentAudio = null;
+let currentSample = 1;
+
+// Sample texts
+const sampleTexts = {
+    1: "Sample text 1",
+    2: "Sample text 2",
+    3: "Sample text 3",
+    4: "Sample text 4",
+    5: "Sample text 5"
+};
+
 // Initialize Azure Speech SDK
 function initSpeechSDK() {
     if (window.SpeechSDK) {
@@ -9,25 +29,6 @@ function initSpeechSDK() {
         console.error('Speech SDK not found');
     }
 }
-
-let audioContext;
-let analyser;
-let mediaStreamSource;
-let speechConfig;
-let audioConfig;
-let recognizer;
-let isRecording = false;
-let currentAudio = null;
-let currentSample = 1;
-
-// 샘플 텍스트
-const sampleTexts = {
-    1: "Sample text 1",
-    2: "Sample text 2",
-    3: "Sample text 3",
-    4: "Sample text 4",
-    5: "Sample text 5"
-};
 
 // Wait until the Speech SDK is loaded
 function waitForSDK() {
@@ -48,7 +49,9 @@ async function initAudioContext() {
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
-    analyser = audioContext.createAnalyser();
+    if (!analyser && audioContext) {
+        analyser = audioContext.createAnalyser();
+    }
 }
 
 // Play native speaker audio
@@ -98,7 +101,10 @@ async function startRecording() {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         console.log("Microphone access granted");
         
-        // updateVolumeIndicator(stream);
+        // Make sure updateVolumeIndicator is defined and called here if needed
+        if (typeof updateVolumeIndicator === 'function') {
+            updateVolumeIndicator(stream);
+        }
 
         const referenceText = document.querySelector('.practice-text').textContent;
         const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
@@ -123,7 +129,10 @@ async function startRecording() {
         recognizer.recognized = (s, e) => {
             if (e.result.text) {
                 const pronunciationResult = SpeechSDK.PronunciationAssessmentResult.fromResult(e.result);
-                analyzePronunciation(pronunciationResult);
+                // Make sure analyzePronunciation is defined and called here if needed
+                if (typeof analyzePronunciation === 'function') {
+                    analyzePronunciation(pronunciationResult);
+                }
             }
         };
 
@@ -140,7 +149,22 @@ async function startRecording() {
     }
 }
 
-// 통합된 DOMContentLoaded 이벤트 핸들러
+// Change sample function
+function changeSample(sampleNumber) {
+    const practiceText = document.querySelector('.practice-text');
+    
+    if (practiceText) {
+        practiceText.textContent = sampleTexts[sampleNumber] || "Sample text not found";
+    }
+    
+    document.querySelectorAll('.sample-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.sample) === sampleNumber);
+    });
+    
+    currentSample = sampleNumber;
+}
+
+// Integrated DOMContentLoaded event handler
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         console.log("Checking if SpeechSDK is loaded:", window.SpeechSDK);
@@ -165,25 +189,3 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Initialization error:', error);
     }
 });
-
-// Sample을 변경하는 함수 정의
-function changeSample(sampleNumber) {
-    const practiceText = document.querySelector('.practice-text');
-    const sampleTexts = {
-        1: "Sample text 1",
-        2: "Sample text 2",
-        3: "Sample text 3",
-        4: "Sample text 4",
-        5: "Sample text 5"
-    };
-    
-    if (practiceText) {
-        practiceText.textContent = sampleTexts[sampleNumber] || "Sample text not found";
-    }
-    
-    document.querySelectorAll('.sample-btn').forEach(btn => {
-        btn.classList.toggle('active', parseInt(btn.dataset.sample) === sampleNumber);
-    });
-    
-    currentSample = sampleNumber;
-}
