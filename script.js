@@ -59,30 +59,120 @@ function playNativeSpeaker() {
         currentAudio = null;
     }
 
-    document.getElementById('status').textContent = 'Loading audio...';
-    document.getElementById('playNative').disabled = true;
-
-    currentAudio = new Audio(`audio/native-speaker${currentSample}.mp3?v=2`);
+    const statusElement = document.getElementById('status');
+    const playButton = document.getElementById('playNative');
     
-    currentAudio.oncanplaythrough = () => {
-        document.getElementById('status').textContent = 'Playing audio...';
-        currentAudio.play().catch(error => {
-            console.error('Play error:', error);
-            document.getElementById('status').textContent = 'Error playing audio';
+    statusElement.textContent = 'Loading audio...';
+    playButton.disabled = true;
+
+    // Create new Audio object with mobile optimizations
+    currentAudio = new Audio();
+    currentAudio.preload = 'auto';  // Ensure audio preloading
+    
+    // Add event listeners before setting src
+    currentAudio.addEventListener('loadeddata', () => {
+        console.log('Audio loaded successfully');
+        statusElement.textContent = 'Playing audio...';
+        
+        // Play with user gesture handling
+        const playPromise = currentAudio.play();
+        
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                console.log('Audio playback started successfully');
+            }).catch(error => {
+                console.error('Playback error:', error);
+                statusElement.textContent = 'Error playing audio. Tap to try again.';
+                playButton.disabled = false;
+                
+                // For mobile browsers that require user interaction
+                const resumeAudio = () => {
+                    currentAudio.play().catch(e => console.error('Resume failed:', e));
+                    statusElement.removeEventListener('click', resumeAudio);
+                };
+                statusElement.addEventListener('click', resumeAudio);
+            });
+        }
+    });
+
+    currentAudio.addEventListener('ended', () => {
+        console.log('Audio playback completed');
+        statusElement.textContent = 'Audio finished';
+        playButton.disabled = false;
+    });
+
+    currentAudio.addEventListener('error', (e) => {
+        console.error('Audio loading error:', e);
+        statusElement.textContent = 'Error loading audio. Check your connection and try again.';
+        playButton.disabled = false;
+    });
+
+    // Check if audio file exists before trying to play
+    fetch(`audio/native-speaker${currentSample}.mp3?v=2`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Audio file not found');
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            const audioUrl = URL.createObjectURL(blob);
+            currentAudio.src = audioUrl;
+        })
+        .catch(error => {
+            console.error('Error fetching audio:', error);
+            statusElement.textContent = 'Audio file not found or network error';
+            playButton.disabled = false;
         });
-    };
-
-    currentAudio.onended = () => {
-        document.getElementById('status').textContent = 'Audio finished';
-        document.getElementById('playNative').disabled = false;
-    };
-
-    currentAudio.onerror = () => {
-        console.error('Audio loading error');
-        document.getElementById('status').textContent = 'Error loading audio';
-        document.getElementById('playNative').disabled = false;
-    };
 }
+
+// Add this function to initialize audio playback on first user interaction
+function initAudioPlayback() {
+    // Create and immediately play + pause a silent audio to initialize audio context
+    const silentAudio = new Audio();
+    silentAudio.play().then(() => {
+        silentAudio.pause();
+    }).catch(e => console.log('Silent audio initialization failed:', e));
+    
+    // Remove the event listener after first interaction
+    document.removeEventListener('click', initAudioPlayback);
+}
+
+// Modify your DOMContentLoaded event listener to include audio initialization
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        console.log("Checking if SpeechSDK is loaded:", window.SpeechSDK);
+        await waitForSDK();
+        initSpeechSDK();
+        console.log("Speech SDK initialized successfully");
+
+        const practiceText = document.querySelector('.practice-text');
+        if (practiceText) {
+            practiceText.textContent = sampleTexts[1];
+        }
+
+        // Add click listener for audio initialization
+        document.addEventListener('click', initAudioPlayback);
+
+        document.querySelectorAll('.sample-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const sampleNumber = parseInt(e.target.dataset.sample);
+                changeSample(sampleNumber);
+            });
+        });
+
+        document.getElementById('playNative').addEventListener('click', playNativeSpeaker);
+        document.getElementById('startRecording').addEventListener('click', startRecording);
+
+        // Add mobile browser detection
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobile) {
+            console.log('Mobile browser detected, applying mobile-specific optimizations');
+        }
+    } catch (error) {
+        console.error('Initialization error:', error);
+    }
+});
 
 // Stop recording
 function stopRecording() {
