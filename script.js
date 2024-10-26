@@ -87,7 +87,6 @@ function playNativeSpeaker() {
             currentAudio.setAttribute('playsinline', '');
             currentAudio.setAttribute('webkit-playsinline', '');
 
-            // 이벤트 리스너 설정
             currentAudio.addEventListener('canplaythrough', () => {
                 statusElement.textContent = 'Playing audio...';
                 currentAudio.play()
@@ -116,13 +115,11 @@ function playNativeSpeaker() {
                 playButton.disabled = false;
             });
 
-            currentAudio.addEventListener('error', (e) => {
-                console.error('Audio error:', e);
+            currentAudio.addEventListener('error', () => {
                 statusElement.textContent = 'Error playing audio';
                 playButton.disabled = false;
             });
 
-            // 로딩 시작
             currentAudio.load();
         })
         .catch(error => {
@@ -131,114 +128,6 @@ function playNativeSpeaker() {
             playButton.disabled = false;
         });
 }
-
-// Add this function to initialize audio playback on first user interaction
-function initAudioPlayback() {
-    // Create and immediately play + pause a silent audio to initialize audio context
-    const silentAudio = new Audio();
-    silentAudio.play().then(() => {
-        silentAudio.pause();
-    }).catch(e => console.log('Silent audio initialization failed:', e));
-    
-    // Remove the event listener after first interaction
-    document.removeEventListener('click', initAudioPlayback);
-}
-// Mobile-specific initialization
-function initMobileSupport() {
-    const playButton = document.getElementById('playNative');
-    const startRecordButton = document.getElementById('startRecording');
-    const sampleButtons = document.querySelectorAll('.sample-btn');
-    
-    // iOS에서 오디오 재생을 위한 초기화
-    const unlockAudioContext = () => {
-        if (audioContext && audioContext.state === 'suspended') {
-            audioContext.resume();
-        }
-        document.removeEventListener('touchstart', unlockAudioContext);
-        document.removeEventListener('click', unlockAudioContext);
-    };
-
-    document.addEventListener('touchstart', unlockAudioContext);
-    document.addEventListener('click', unlockAudioContext);
-
-    // 모바일에서의 버튼 이벤트 처리
-    if (playButton) {
-        playButton.addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            playNativeSpeaker();
-        });
-    }
-
-    if (startRecordButton) {
-        startRecordButton.addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            startRecording();
-        });
-    }
-
-    sampleButtons.forEach(btn => {
-        btn.addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            const sampleNumber = parseInt(this.dataset.sample);
-            changeSample(sampleNumber);
-        });
-    });
-}
-// Modify your DOMContentLoaded event listener to include audio initialization
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        console.log("Checking if SpeechSDK is loaded:", window.SpeechSDK);
-        await waitForSDK();
-        initSpeechSDK();
-        console.log("Speech SDK initialized successfully");
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        console.log("Initializing application...");
-        
-        // 모바일 기기 감지 코드 추가
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-        
-        if (isMobile) {
-            console.log('Mobile device detected:', isiOS ? 'iOS' : 'Android');
-            initMobileSupport();
-        }
-
-        // 나머지 기존 코드는 그대로 유지
-        await waitForSDK();
-        initSpeechSDK();
-        // ... (기존 코드 계속)
-    } catch (error) {
-        console.error('Initialization error:', error);
-    }
-});
-        const practiceText = document.querySelector('.practice-text');
-        if (practiceText) {
-            practiceText.textContent = sampleTexts[1];
-        }
-
-        // Add click listener for audio initialization
-        document.addEventListener('click', initAudioPlayback);
-
-        document.querySelectorAll('.sample-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const sampleNumber = parseInt(e.target.dataset.sample);
-                changeSample(sampleNumber);
-            });
-        });
-
-        document.getElementById('playNative').addEventListener('click', playNativeSpeaker);
-        document.getElementById('startRecording').addEventListener('click', startRecording);
-
-        // Add mobile browser detection
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        if (isMobile) {
-            console.log('Mobile browser detected, applying mobile-specific optimizations');
-        }
-    } catch (error) {
-        console.error('Initialization error:', error);
-    }
-});
 
 // Stop recording
 function stopRecording() {
@@ -342,13 +231,51 @@ function changeSample(sampleNumber) {
     currentSample = sampleNumber;
 }
 
+// Add analyzePronunciation function
+function analyzePronunciation(pronunciationResult) {
+    if (!pronunciationResult) {
+        console.error('No pronunciation result to analyze');
+        return;
+    }
+
+    const scoreElement = document.getElementById('pronunciationScore');
+    if (scoreElement) {
+        scoreElement.textContent = `Pronunciation Score: ${pronunciationResult.pronunciationScore}`;
+    }
+
+    const feedbackElement = document.getElementById('feedback');
+    if (feedbackElement) {
+        feedbackElement.textContent = `Accuracy: ${pronunciationResult.accuracyScore}
+            Fluency: ${pronunciationResult.fluencyScore}
+            Completeness: ${pronunciationResult.completenessScore}`;
+    }
+}
+
+// Initialize mobile support
+function initMobileSupport() {
+    const unlockAudioContext = () => {
+        if (audioContext && audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+        document.removeEventListener('touchstart', unlockAudioContext);
+        document.removeEventListener('click', unlockAudioContext);
+    };
+
+    document.addEventListener('touchstart', unlockAudioContext);
+    document.addEventListener('click', unlockAudioContext);
+}
+
 // Initialize when document is loaded
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        console.log("Checking if SpeechSDK is loaded:", window.SpeechSDK);
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobile) {
+            console.log('Mobile device detected, applying optimizations');
+            initMobileSupport();
+        }
+
         await waitForSDK();
         initSpeechSDK();
-        console.log("Speech SDK initialized successfully");
 
         const practiceText = document.querySelector('.practice-text');
         if (practiceText) {
@@ -368,25 +295,3 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Initialization error:', error);
     }
 });
-
-// Add analyzePronunciation function if not defined elsewhere
-function analyzePronunciation(pronunciationResult) {
-    if (!pronunciationResult) {
-        console.error('No pronunciation result to analyze');
-        return;
-    }
-
-    // Display the pronunciation score
-    const scoreElement = document.getElementById('pronunciationScore');
-    if (scoreElement) {
-        scoreElement.textContent = `Pronunciation Score: ${pronunciationResult.pronunciationScore}`;
-    }
-
-    // Display detailed feedback
-    const feedbackElement = document.getElementById('feedback');
-    if (feedbackElement) {
-        feedbackElement.textContent = `Accuracy: ${pronunciationResult.accuracyScore}
-            Fluency: ${pronunciationResult.fluencyScore}
-            Completeness: ${pronunciationResult.completenessScore}`;
-    }
-}
