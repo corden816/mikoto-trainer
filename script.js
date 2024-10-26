@@ -375,12 +375,25 @@ function initMobileSupport() {
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        
         if (isMobile) {
-            console.log('Mobile device detected, applying optimizations');
+            console.log('Mobile device detected:', isiOS ? 'iOS' : 'Android');
             initMobileSupport();
+            
+            if (isiOS) {
+                // iOS 특별 처리
+                document.addEventListener('touchstart', async () => {
+                    if (audioContext && audioContext.state === 'suspended') {
+                        await audioContext.resume();
+                    }
+                }, false);
+            }
         }
-pitchAnalyzer.init();
 
+        // 들여쓰기 수정
+        pitchAnalyzer.init();
+        
         await waitForSDK();
         initSpeechSDK();
 
