@@ -50,16 +50,6 @@ async function initAudioContext() {
     analyser = audioContext.createAnalyser();
 }
 
-// Mobile-friendly event listeners for buttons
-document.addEventListener('DOMContentLoaded', () => {
-    console.log("Checking if SpeechSDK is loaded:", window.SpeechSDK); // SDK 로드 확인
-    const startRecordingButton = document.getElementById('startRecording');
-    const playNativeButton = document.getElementById('playNative');
-
-    startRecordingButton.addEventListener('click', startRecording);
-    playNativeButton.addEventListener('click', playNativeSpeaker);
-});
-
 // Play native speaker audio
 function playNativeSpeaker() {
     if (currentAudio) {
@@ -71,7 +61,6 @@ function playNativeSpeaker() {
     document.getElementById('playNative').disabled = true;
 
     currentAudio = new Audio(`audio/native-speaker${currentSample}.mp3?v=2`);
-
     
     currentAudio.oncanplaythrough = () => {
         document.getElementById('status').textContent = 'Playing audio...';
@@ -161,9 +150,10 @@ function stopRecording() {
     }
 }
 
-// Initialize everything when DOM is loaded
+// 통합된 DOMContentLoaded 이벤트 핸들러
 document.addEventListener('DOMContentLoaded', async () => {
     try {
+        console.log("Checking if SpeechSDK is loaded:", window.SpeechSDK);
         await waitForSDK();
         initSpeechSDK();
 
@@ -185,3 +175,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Initialization error:', error);
     }
 });
+
+// Sample을 변경하는 함수 정의
+function changeSample(sampleNumber) {
+    const practiceText = document.querySelector('.practice-text');
+    const sampleTexts = {
+        1: "Sample text 1",
+        2: "Sample text 2",
+        3: "Sample text 3",
+        4: "Sample text 4",
+        5: "Sample text 5"
+    };
+    
+    if (practiceText) {
+        practiceText.textContent = sampleTexts[sampleNumber] || "Sample text not found";
+    }
+    
+    document.querySelectorAll('.sample-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.sample) === sampleNumber);
+    });
+    
+    currentSample = sampleNumber;
+}
