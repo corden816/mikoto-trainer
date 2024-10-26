@@ -10,57 +10,6 @@ function initSpeechSDK() {
     }
 }
 
-async function startRecording() {
-    console.log("Attempting to start recording...");
-
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        document.getElementById('status').textContent = 'Microphone access not supported on this device';
-        console.error("Browser does not support getUserMedia");
-        return;
-    }
-
-    try {
-        await initAudioContext();
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        console.log("Microphone access granted");
-        
-        updateVolumeIndicator(stream);
-
-        const referenceText = document.querySelector('.practice-text').textContent;
-        const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
-            referenceText,
-            SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
-            SpeechSDK.PronunciationAssessmentGranularity.Word,
-            true
-        );
-
-        audioConfig = SpeechSDK.AudioConfig.fromStreamInput(stream);
-        recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
-        pronunciationAssessmentConfig.applyTo(recognizer);
-
-        isRecording = true;
-        document.getElementById('startRecording').disabled = true;
-        document.getElementById('status').textContent = 'Recording... Speak now!';
-
-        recognizer.recognizing = (s, e) => {
-            document.getElementById('status').textContent = `Recognizing: ${e.result.text}`;
-        };
-
-        recognizer.recognized = (s, e) => {
-            if (e.result.text) {
-                const pronunciationResult = SpeechSDK.PronunciationAssessmentResult.fromResult(e.result);
-                analyzePronunciation(pronunciationResult);
-            }
-        };
-
-        recognizer.startContinuousRecognitionAsync();
-        setTimeout(stopRecording, 30000);
-    } catch (error) {
-        console.error('Error accessing microphone:', error);
-        document.getElementById('status').textContent = `Error accessing microphone: ${error.name}`;
-    }
-}
-
 let audioContext;
 let analyser;
 let mediaStreamSource;
@@ -136,6 +85,8 @@ function playNativeSpeaker() {
 
 // Start recording with microphone access check
 async function startRecording() {
+    console.log("Attempting to start recording...");
+
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         document.getElementById('status').textContent = 'Microphone access not supported on this device';
         console.error("Browser does not support getUserMedia");
@@ -143,8 +94,9 @@ async function startRecording() {
     }
 
     try {
-        await initAudioContext();  // Ensure AudioContext is initialized
+        await initAudioContext();
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log("Microphone access granted");
         
         updateVolumeIndicator(stream);
 
@@ -187,7 +139,6 @@ async function startRecording() {
         }
     }
 }
-
 
 // 통합된 DOMContentLoaded 이벤트 핸들러
 document.addEventListener('DOMContentLoaded', async () => {
