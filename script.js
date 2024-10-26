@@ -1,3 +1,23 @@
+// Global variables
+let audioContext;
+let analyser;
+let mediaStreamSource;
+let speechConfig;
+let audioConfig;
+let recognizer;
+let isRecording = false;
+let currentAudio = null;
+let currentSample = 1;
+
+// Sample texts
+const sampleTexts = {
+    1: "Sample text 1",
+    2: "Sample text 2",
+    3: "Sample text 3",
+    4: "Sample text 4",
+    5: "Sample text 5"
+};
+
 // Initialize Azure Speech SDK
 function initSpeechSDK() {
     if (window.SpeechSDK) {
@@ -9,25 +29,6 @@ function initSpeechSDK() {
         console.error('Speech SDK not found');
     }
 }
-
-let audioContext;
-let analyser;
-let mediaStreamSource;
-let speechConfig;
-let audioConfig;
-let recognizer;
-let isRecording = false;
-let currentAudio = null;
-let currentSample = 1;
-
-// 샘플 텍스트
-const sampleTexts = {
-    1: "Sample text 1",
-    2: "Sample text 2",
-    3: "Sample text 3",
-    4: "Sample text 4",
-    5: "Sample text 5"
-};
 
 // Wait until the Speech SDK is loaded
 function waitForSDK() {
@@ -43,7 +44,7 @@ function waitForSDK() {
     });
 }
 
-// Initialize audio context on first interaction
+// Initialize audio context
 async function initAudioContext() {
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -83,7 +84,7 @@ function playNativeSpeaker() {
     };
 }
 
-// stopRecording 함수를 전역 스코프로 이동
+// Stop recording
 function stopRecording() {
     if (recognizer) {
         recognizer.stopContinuousRecognitionAsync(
@@ -93,7 +94,6 @@ function stopRecording() {
                 isRecording = false;
                 document.getElementById('startRecording').disabled = false;
                 
-                // 리소스 정리
                 if (audioConfig) {
                     audioConfig.close();
                 }
@@ -109,7 +109,7 @@ function stopRecording() {
     }
 }
 
-// Start recording with microphone access check
+// Start recording
 async function startRecording() {
     console.log("Attempting to start recording...");
 
@@ -171,13 +171,28 @@ async function startRecording() {
     }
 }
 
-// 통합된 DOMContentLoaded 이벤트 핸들러
+// Change sample
+function changeSample(sampleNumber) {
+    const practiceText = document.querySelector('.practice-text');
+    
+    if (practiceText) {
+        practiceText.textContent = sampleTexts[sampleNumber] || "Sample text not found";
+    }
+    
+    document.querySelectorAll('.sample-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.sample) === sampleNumber);
+    });
+    
+    currentSample = sampleNumber;
+}
+
+// Initialize when document is loaded
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         console.log("Checking if SpeechSDK is loaded:", window.SpeechSDK);
         await waitForSDK();
         initSpeechSDK();
-        console.log("Speech SDK 초기화 완료");
+        console.log("Speech SDK initialized successfully");
 
         const practiceText = document.querySelector('.practice-text');
         if (practiceText) {
@@ -198,17 +213,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// Sample을 변경하는 함수 정의
-function changeSample(sampleNumber) {
-    const practiceText = document.querySelector('.practice-text');
-    
-    if (practiceText) {
-        practiceText.textContent = sampleTexts[sampleNumber] || "Sample text not found";
+// Add analyzePronunciation function if not defined elsewhere
+function analyzePronunciation(pronunciationResult) {
+    if (!pronunciationResult) {
+        console.error('No pronunciation result to analyze');
+        return;
     }
-    
-    document.querySelectorAll('.sample-btn').forEach(btn => {
-        btn.classList.toggle('active', parseInt(btn.dataset.sample) === sampleNumber);
-    });
-    
-    currentSample = sampleNumber;
+
+    // Display the pronunciation score
+    const scoreElement = document.getElementById('pronunciationScore');
+    if (scoreElement) {
+        scoreElement.textContent = `Pronunciation Score: ${pronunciationResult.pronunciationScore}`;
+    }
+
+    // Display detailed feedback
+    const feedbackElement = document.getElementById('feedback');
+    if (feedbackElement) {
+        feedbackElement.textContent = `Accuracy: ${pronunciationResult.accuracyScore}
+            Fluency: ${pronunciationResult.fluencyScore}
+            Completeness: ${pronunciationResult.completenessScore}`;
+    }
 }
