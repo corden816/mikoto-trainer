@@ -98,7 +98,7 @@ async function startRecording() {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         console.log("Microphone access granted");
         
-        updateVolumeIndicator(stream);
+        // updateVolumeIndicator(stream);
 
         const referenceText = document.querySelector('.practice-text').textContent;
         const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
