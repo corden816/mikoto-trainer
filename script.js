@@ -138,17 +138,12 @@ async function startRecording() {
         };
 
         recognizer.startContinuousRecognitionAsync();
-        setTimeout(() => {
-            stopRecording();
-        }, 30000); // Auto-stop after 30 seconds
+        setTimeout(stopRecording, 30000); // Auto-stop after 30 seconds
     } catch (error) {
         console.error('Error accessing microphone:', error);
         document.getElementById('status').textContent = `Error accessing microphone: ${error.message}`;
-    }
-}
 
-// Stop recording function
-function stopRecording() {
+        function stopRecording() {
     if (recognizer) {
         recognizer.stopContinuousRecognitionAsync(
             () => {
@@ -164,6 +159,8 @@ function stopRecording() {
         );
     }
 }
+
+
 
 // 통합된 DOMContentLoaded 이벤트 핸들러
 document.addEventListener('DOMContentLoaded', async () => {
@@ -201,6 +198,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Sample을 변경하는 함수 정의
 function changeSample(sampleNumber) {
     const practiceText = document.querySelector('.practice-text');
+    const sampleTexts = {
+        1: "Sample text 1",
+        2: "Sample text 2",
+        3: "Sample text 3",
+        4: "Sample text 4",
+        5: "Sample text 5"
+    };
     
     if (practiceText) {
         practiceText.textContent = sampleTexts[sampleNumber] || "Sample text not found";
