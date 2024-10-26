@@ -10,7 +10,7 @@ function initSpeechSDK() {
     }
 }
 
-let audioContext;  // audioContext 중복 선언 제거
+let audioContext;
 let analyser;
 let mediaStreamSource;
 let speechConfig;
@@ -83,6 +83,32 @@ function playNativeSpeaker() {
     };
 }
 
+// stopRecording 함수를 전역 스코프로 이동
+function stopRecording() {
+    if (recognizer) {
+        recognizer.stopContinuousRecognitionAsync(
+            () => {
+                console.log('Recognition stopped');
+                document.getElementById('status').textContent = 'Recording stopped';
+                isRecording = false;
+                document.getElementById('startRecording').disabled = false;
+                
+                // 리소스 정리
+                if (audioConfig) {
+                    audioConfig.close();
+                }
+                if (recognizer) {
+                    recognizer.close();
+                }
+            },
+            (err) => {
+                console.error('Error stopping recognition:', err);
+                document.getElementById('status').textContent = `Error stopping recognition: ${err}`;
+            }
+        );
+    }
+}
+
 // Start recording with microphone access check
 async function startRecording() {
     console.log("Attempting to start recording...");
@@ -142,45 +168,22 @@ async function startRecording() {
     } catch (error) {
         console.error('Error accessing microphone:', error);
         document.getElementById('status').textContent = `Error accessing microphone: ${error.message}`;
-
-        function stopRecording() {
-    if (recognizer) {
-        recognizer.stopContinuousRecognitionAsync(
-            () => {
-                console.log('Recognition stopped');
-                document.getElementById('status').textContent = 'Recording stopped';
-                isRecording = false;
-                document.getElementById('startRecording').disabled = false;
-            },
-            (err) => {
-                console.error('Error stopping recognition:', err);
-                document.getElementById('status').textContent = `Error stopping recognition: ${err}`;
-            }
-        );
     }
 }
-
-
 
 // 통합된 DOMContentLoaded 이벤트 핸들러
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         console.log("Checking if SpeechSDK is loaded:", window.SpeechSDK);
-        
-        // Speech SDK가 로드될 때까지 기다리기
         await waitForSDK();
-
-        // SDK 초기화하기
         initSpeechSDK();
         console.log("Speech SDK 초기화 완료");
 
-        // 연습 텍스트 설정
         const practiceText = document.querySelector('.practice-text');
         if (practiceText) {
             practiceText.textContent = sampleTexts[1];
         }
 
-        // 버튼 이벤트 리스너 설정
         document.querySelectorAll('.sample-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const sampleNumber = parseInt(e.target.dataset.sample);
@@ -198,13 +201,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Sample을 변경하는 함수 정의
 function changeSample(sampleNumber) {
     const practiceText = document.querySelector('.practice-text');
-    const sampleTexts = {
-        1: "Sample text 1",
-        2: "Sample text 2",
-        3: "Sample text 3",
-        4: "Sample text 4",
-        5: "Sample text 5"
-    };
     
     if (practiceText) {
         practiceText.textContent = sampleTexts[sampleNumber] || "Sample text not found";
