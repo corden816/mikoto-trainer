@@ -9,6 +9,111 @@ let isRecording = false;
 let currentAudio = null;
 let currentSample = 1;
 
+let pitchAnalyzer = {
+    nativePitchData: [], 
+    userPitchData: [],   
+    isRecording: false,
+    audioContext: null,
+    analyzer: null,
+
+    init() {
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        this.analyzer = this.audioContext.createAnalyser();
+        this.analyzer.fftSize = 2048;
+    },
+
+    collectPitchData(audioData, isNative = false) {
+        const bufferLength = this.analyzer.frequencyBinCount;
+        const dataArray = new Float32Array(bufferLength);
+        this.analyzer.getFloatTimeDomainData(dataArray);
+        
+        const pitch = this.calculatePitch(dataArray);
+        
+        if (isNative) {
+            this.nativePitchData.push(pitch);
+        } else {
+            this.userPitchData.push(pitch);
+        }
+    },
+
+    calculatePitch(buffer) {
+        const sampleRate = this.audioContext.sampleRate;
+        let correlation = new Array(buffer.length).fill(0);
+        
+        for (let i = 0; i < buffer.length; i++) {
+            for (let j = 0; j < buffer.length - i; j++) {
+                correlation[i] += buffer[j] * buffer[j + i];
+            }
+        }
+
+        let peak = 0;
+        for (let i = 1; i < correlation.length; i++) {
+            if (correlation[i] > correlation[peak]) {
+                peak = i;
+            }
+        }
+
+        return sampleRate / peak;
+    },
+
+    calculateSimilarity() {
+        if (this.nativePitchData.length === 0 || this.userPitchData.length === 0) {
+            return 0;
+        }
+
+        const normalizedNative = this.normalizePitchData(this.nativePitchData);
+        const normalizedUser = this.normalizePitchData(this.userPitchData);
+
+        let similarity = this.calculateCorrelation(normalizedNative, normalizedUser);
+        return Math.max(0, similarity) * 100;
+    },
+
+    normalizePitchData(data) {
+        const mean = data.reduce((a, b) => a + b) / data.length;
+        const std = Math.sqrt(data.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / data.length);
+        return data.map(x => (x - mean) / std);
+    },
+
+    calculateCorrelation(array1, array2) {
+        const length = Math.min(array1.length, array2.length);
+        let sum1 = 0, sum2 = 0, sum1Sq = 0, sum2Sq = 0, pSum = 0;
+
+        for (let i = 0; i < length; i++) {
+            sum1 += array1[i];
+            sum2 += array2[i];
+            sum1Sq += array1[i] ** 2;
+            sum2Sq += array2[i] ** 2;
+            pSum += array1[i] * array2[i];
+        }
+
+        const num = pSum - (sum1 * sum2 / length);
+        const den = Math.sqrt((sum1Sq - sum1 ** 2 / length) * (sum2Sq - sum2 ** 2 / length));
+        return num / den;
+    },
+
+    displayResults() {
+        const similarity = this.calculateSimilarity();
+        const feedbackElement = document.getElementById('feedback');
+        
+        if (feedbackElement) {
+            let currentFeedback = feedbackElement.textContent;
+            feedbackElement.textContent = currentFeedback + `\n\n억양 유사도: ${similarity.toFixed(1)}%\n`;
+            
+            if (similarity >= 80) {
+                feedbackElement.textContent += "훌륭합니다! 원어민과 매우 비슷한 억양입니다.";
+            } else if (similarity >= 60) {
+                feedbackElement.textContent += "좋습니다. 억양이 꽤 자연스럽습니다.";
+            } else {
+                feedbackElement.textContent += "원어민 음성을 다시 들어보고 억양에 더 신경써보세요.";
+            }
+        }
+    },
+
+    reset() {
+        this.nativePitchData = [];
+        this.userPitchData = [];
+    }
+};
 // Sample texts
 const sampleTexts = {
     1: "Sample text 1",
@@ -236,6 +341,8 @@ function analyzePronunciation(pronunciationResult) {
     if (!pronunciationResult) {
         console.error('No pronunciation result to analyze');
         return;
+        pitchAnalyzer.displayResults();
+
     }
 
     const scoreElement = document.getElementById('pronunciationScore');
@@ -273,6 +380,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log('Mobile device detected, applying optimizations');
             initMobileSupport();
         }
+pitchAnalyzer.init();
+
+        await waitForSDK();
+        initSpeechSDK();
 
         await waitForSDK();
         initSpeechSDK();
