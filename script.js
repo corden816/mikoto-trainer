@@ -142,6 +142,21 @@ async function startRecording() {
     } catch (error) {
         console.error('Error accessing microphone:', error);
         document.getElementById('status').textContent = `Error accessing microphone: ${error.message}`;
+
+        function stopRecording() {
+    if (recognizer) {
+        recognizer.stopContinuousRecognitionAsync(
+            () => {
+                console.log('Recognition stopped');
+                document.getElementById('status').textContent = 'Recording stopped';
+                isRecording = false;
+                document.getElementById('startRecording').disabled = false;
+            },
+            (err) => {
+                console.error('Error stopping recognition:', err);
+                document.getElementById('status').textContent = `Error stopping recognition: ${err}`;
+            }
+        );
     }
 }
 
