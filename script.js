@@ -1,3 +1,4 @@
+
 // Global variables
 let audioContext;
 let analyser;
@@ -116,11 +117,7 @@ let pitchAnalyzer = {
 };
 // Sample texts
 const sampleTexts = {
-    1: "Whenever you walk along the street of small town of Sasebo, Japan, you will notice the long waiting line in front of the hamburger house.
-        And looking around, you will find so many more hamburger palces along the street. 
-    //Then you might be thinking, why hamburger is so popular here? It's even a Japan.
-    //The hidden story of Sasebo hamburger is back to 1940's. During the World War 2, Sasebo was IJN'S one of the biggest naval base.
-    //Several shipyards and factories //for supply were located there.",
+    1: "hello",
     2: "Sample text 2",
     3: "Sample text 3",
     4: "Sample text 4",
