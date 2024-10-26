@@ -116,7 +116,7 @@ let pitchAnalyzer = {
 };
 // Sample texts
 const sampleTexts = {
-    1: "Sample text 1",
+    1: "hello",
     2: "Sample text 2",
     3: "Sample text 3",
     4: "Sample text 4",
