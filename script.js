@@ -341,8 +341,6 @@ function analyzePronunciation(pronunciationResult) {
     if (!pronunciationResult) {
         console.error('No pronunciation result to analyze');
         return;
-        pitchAnalyzer.displayResults();
-
     }
 
     const scoreElement = document.getElementById('pronunciationScore');
@@ -356,6 +354,7 @@ function analyzePronunciation(pronunciationResult) {
             Fluency: ${pronunciationResult.fluencyScore}
             Completeness: ${pronunciationResult.completenessScore}`;
     }
+    pitchAnalyzer.displayResults();
 }
 
 // Initialize mobile support
@@ -381,9 +380,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             initMobileSupport();
         }
 pitchAnalyzer.init();
-
-        await waitForSDK();
-        initSpeechSDK();
 
         await waitForSDK();
         initSpeechSDK();
