@@ -150,14 +150,21 @@ async function startRecording() {
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         console.log("Checking if SpeechSDK is loaded:", window.SpeechSDK);
+        
+        // Speech SDK가 로드될 때까지 기다리기
         await waitForSDK();
-        initSpeechSDK();
 
+        // SDK 초기화하기
+        initSpeechSDK();
+        console.log("Speech SDK 초기화 완료");
+
+        // 연습 텍스트 설정
         const practiceText = document.querySelector('.practice-text');
         if (practiceText) {
             practiceText.textContent = sampleTexts[1];
         }
 
+        // 버튼 이벤트 리스너 설정
         document.querySelectorAll('.sample-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const sampleNumber = parseInt(e.target.dataset.sample);
