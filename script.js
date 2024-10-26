@@ -86,14 +86,15 @@ function playNativeSpeaker() {
 async function startRecording() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         document.getElementById('status').textContent = 'Microphone access not supported on this device';
+        console.error("Browser does not support getUserMedia");
         return;
     }
 
     try {
-        await initAudioContext();
+        await initAudioContext();  // Ensure AudioContext is initialized
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         
-        updateVolumeIndicator(stream); // Volume indicator
+        updateVolumeIndicator(stream);
 
         const referenceText = document.querySelector('.practice-text').textContent;
         const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
@@ -113,10 +114,6 @@ async function startRecording() {
 
         recognizer.recognizing = (s, e) => {
             document.getElementById('status').textContent = `Recognizing: ${e.result.text}`;
-            const confidenceLevel = e.result.confidence;
-            const volumeBar = document.getElementById('volumeBar');
-            volumeBar.style.backgroundColor = confidenceLevel > 0.75 ? '#28a745' :
-                                               confidenceLevel > 0.5 ? '#ffc107' : '#dc3545';
         };
 
         recognizer.recognized = (s, e) => {
@@ -127,28 +124,18 @@ async function startRecording() {
         };
 
         recognizer.startContinuousRecognitionAsync();
-        setTimeout(stopRecording, 30000); // 30초 후 자동 종료
+        setTimeout(stopRecording, 30000); // Auto-stop after 30 seconds
     } catch (error) {
-        console.error('Error starting recording:', error);
-        document.getElementById('status').textContent = 'Error accessing microphone';
-    }
-}
-
-// Stop recording
-function stopRecording() {
-    if (recognizer) {
-        recognizer.stopContinuousRecognitionAsync();
-        isRecording = false;
-        document.getElementById('startRecording').disabled = false;
-        document.getElementById('status').textContent = 'Recording stopped';
-
-        document.getElementById('volumeBar').style.backgroundColor = '#4CAF50';
-
-        if (mediaStreamSource) {
-            mediaStreamSource.disconnect();
+        console.error('Error accessing microphone:', error);
+        document.getElementById('status').textContent = `Error accessing microphone: ${error.name}`;
+        if (error.name === "NotAllowedError") {
+            alert("Please allow microphone access to use this feature.");
+        } else if (error.name === "NotFoundError") {
+            alert("No microphone found. Please check your device.");
         }
     }
 }
+
 
 // 통합된 DOMContentLoaded 이벤트 핸들러
 document.addEventListener('DOMContentLoaded', async () => {
