@@ -263,6 +263,9 @@ function stopRecording() {
 }
 
 // Start recording
+// ... 이전 코드는 동일합니다 ...
+
+// Start recording
 async function startRecording() {
     console.log("Attempting to start recording...");
 
@@ -287,7 +290,7 @@ async function startRecording() {
             referenceText,
             SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
             SpeechSDK.PronunciationAssessmentGranularity.Phoneme, // 음소 수준으로 변경
-            true
+            true // enableMiscue
         );
 
         if (!speechConfig) {
@@ -295,7 +298,7 @@ async function startRecording() {
             return;
         }
 
-        audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+        audioConfig = SpeechSDK.AudioConfig.fromStreamInput(stream);
         recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
         pronunciationAssessmentConfig.applyTo(recognizer);
 
@@ -303,26 +306,37 @@ async function startRecording() {
         document.getElementById('startRecording').disabled = true;
         document.getElementById('status').textContent = 'Recording... Speak now!';
 
-        recognizer.recognizing = (s, e) => {
-            console.log(`Recognizing: ${e.result.text}`);
-            document.getElementById('status').textContent = `Recognizing: ${e.result.text}`;
-        };
-
-        recognizer.recognized = (s, e) => {
-            if (e.result.text) {
-                const pronunciationResult = SpeechSDK.PronunciationAssessmentResult.fromResult(e.result);
-                console.log("Pronunciation Result:", pronunciationResult);
-                analyzePronunciation(pronunciationResult, e.result.text);
+        recognizer.recognizeOnceAsync(
+            (result) => {
+                if (result.text) {
+                    const pronunciationResult = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
+                    console.log("Pronunciation Result:", pronunciationResult);
+                    analyzePronunciation(pronunciationResult, result.text);
+                }
+                isRecording = false;
+                document.getElementById('startRecording').disabled = false;
+                recognizer.close();
+                recognizer = undefined;
+            },
+            (err) => {
+                console.error('Error recognizing speech:', err);
+                document.getElementById('status').textContent = `Error recognizing speech: ${err}`;
+                isRecording = false;
+                document.getElementById('startRecording').disabled = false;
+                recognizer.close();
+                recognizer = undefined;
             }
-        };
-
-        recognizer.startContinuousRecognitionAsync();
-        setTimeout(stopRecording, 30000); // Auto-stop after 30 seconds
+        );
     } catch (error) {
         console.error('Error accessing microphone:', error);
         document.getElementById('status').textContent = `Error accessing microphone: ${error.message}`;
     }
 }
+
+// stopRecording 함수는 제거하거나 주석 처리합니다.
+
+// ... 나머지 코드는 동일합니다 ...
+
 
 // Change sample
 function changeSample(sampleNumber) {
