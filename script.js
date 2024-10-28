@@ -377,8 +377,6 @@ function analyzePronunciation(pronunciationResult, recognizedText) {
 
 // Display Pronunciation Chart using Chart.js
 function displayPronunciationChart(words) {
-    const chartContainer = document.getElementById('chartContainer');
-    chartContainer.innerHTML = '<canvas id="pronunciationChart" width="400" height="200"></canvas>';
     const ctx = document.getElementById('pronunciationChart').getContext('2d');
     const wordLabels = words.map(word => word.word);
     const wordScores = words.map(word => word.accuracyScore);
@@ -403,6 +401,7 @@ function displayPronunciationChart(words) {
         }
     });
 }
+
 
 // Analyze Error Patterns
 function analyzeErrorPatterns(words) {
