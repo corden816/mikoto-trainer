@@ -1,4 +1,3 @@
-
 // Global variables
 let audioContext;
 let analyser;
@@ -115,6 +114,7 @@ let pitchAnalyzer = {
         this.userPitchData = [];
     }
 };
+
 // Sample texts
 const sampleTexts = {
     1: `Whenever you walk along the street of small town of Sasebo, Japan, you will notice the long waiting line in front of the hamburger house. And looking around, you will find so many more hamburger places along the street. Then you might be thinking, why hamburger is so popular here? It's even a Japan.
@@ -286,7 +286,7 @@ async function startRecording() {
         const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
             referenceText,
             SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
-            SpeechSDK.PronunciationAssessmentGranularity.Word,
+            SpeechSDK.PronunciationAssessmentGranularity.Phoneme, // 음소 수준으로 변경
             true
         );
 
@@ -295,7 +295,7 @@ async function startRecording() {
             return;
         }
 
-        audioConfig = SpeechSDK.AudioConfig.fromStreamInput(stream);
+        audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
         recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
         pronunciationAssessmentConfig.applyTo(recognizer);
 
@@ -312,7 +312,7 @@ async function startRecording() {
             if (e.result.text) {
                 const pronunciationResult = SpeechSDK.PronunciationAssessmentResult.fromResult(e.result);
                 console.log("Pronunciation Result:", pronunciationResult);
-                analyzePronunciation(pronunciationResult);
+                analyzePronunciation(pronunciationResult, e.result.text);
             }
         };
 
@@ -339,8 +339,8 @@ function changeSample(sampleNumber) {
     currentSample = sampleNumber;
 }
 
-// Add analyzePronunciation function
-function analyzePronunciation(pronunciationResult) {
+// Analyze Pronunciation Results
+function analyzePronunciation(pronunciationResult, recognizedText) {
     if (!pronunciationResult) {
         console.error('No pronunciation result to analyze');
         return;
@@ -348,16 +348,84 @@ function analyzePronunciation(pronunciationResult) {
 
     const scoreElement = document.getElementById('pronunciationScore');
     if (scoreElement) {
-        scoreElement.textContent = `Pronunciation Score: ${pronunciationResult.pronunciationScore}`;
+        scoreElement.textContent = `발음 점수: ${pronunciationResult.pronunciationScore.toFixed(1)}점`;
     }
 
     const feedbackElement = document.getElementById('feedback');
     if (feedbackElement) {
-        feedbackElement.textContent = `Accuracy: ${pronunciationResult.accuracyScore}
-            Fluency: ${pronunciationResult.fluencyScore}
-            Completeness: ${pronunciationResult.completenessScore}`;
+        feedbackElement.textContent = `정확도: ${pronunciationResult.accuracyScore.toFixed(1)}점
+유창성: ${pronunciationResult.fluencyScore.toFixed(1)}점
+완전성: ${pronunciationResult.completenessScore.toFixed(1)}점\n\n`;
+
+        // 단어별 발음 점수 추가
+        const words = pronunciationResult.words;
+        if (words && words.length > 0) {
+            feedbackElement.textContent += '단어별 발음 점수:\n';
+            words.forEach(word => {
+                feedbackElement.textContent += `${word.word}: ${word.accuracyScore.toFixed(1)}점\n`;
+            });
+
+            // 시각화 도구 표시
+            displayPronunciationChart(words);
+
+            // 발음 오류 패턴 분석
+            analyzeErrorPatterns(words);
+        }
     }
     pitchAnalyzer.displayResults();
+}
+
+// Display Pronunciation Chart using Chart.js
+function displayPronunciationChart(words) {
+    const chartContainer = document.getElementById('chartContainer');
+    chartContainer.innerHTML = '<canvas id="pronunciationChart" width="400" height="200"></canvas>';
+    const ctx = document.getElementById('pronunciationChart').getContext('2d');
+    const wordLabels = words.map(word => word.word);
+    const wordScores = words.map(word => word.accuracyScore);
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: wordLabels,
+            datasets: [{
+                label: '단어별 발음 점수',
+                data: wordScores,
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+}
+
+// Analyze Error Patterns
+function analyzeErrorPatterns(words) {
+    const errorPatterns = {};
+
+    words.forEach(word => {
+        if (word.accuracyScore < 80) { // 임계값은 필요에 따라 조정
+            errorPatterns[word.word] = word.accuracyScore;
+        }
+    });
+
+    // 오류 패턴을 사용자에게 피드백
+    const errorElement = document.getElementById('errorPatterns');
+    if (errorElement) {
+        if (Object.keys(errorPatterns).length > 0) {
+            errorElement.textContent = '발음 개선이 필요한 단어:\n';
+            for (const [word, score] of Object.entries(errorPatterns)) {
+                errorElement.textContent += `${word}: ${score.toFixed(1)}점\n`;
+            }
+        } else {
+            errorElement.textContent = '모든 단어를 잘 발음하셨습니다!';
+        }
+    }
 }
 
 // Initialize mobile support
