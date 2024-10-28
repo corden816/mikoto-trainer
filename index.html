@@ -1,11 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- 기존 코드 유지 -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>M I K O T O</title>
-    <!-- 필요한 스크립트 및 스타일 -->
     <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="styles.css">
@@ -13,62 +11,58 @@
     <script src="script.js"></script> <!-- 나중에 로드 -->
 </head>
 <body>
-    <!-- 로딩 화면 유지 -->
     <div id="loadingScreen" class="loading-screen">
-        <img src="loading image.JPG" alt="Loading...">
-    </div>
+    <img src="loading image.JPG" alt="Loading...">
+</div>
 
-    <style>
-        /* 로딩 화면 스타일 유지 */
-        .loading-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #ffffff;
-            z-index: 9999;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            transition: opacity 0.5s;
-        }
+<style>
+.loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #ffffff;
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.5s;
+}
 
-        .loading-screen img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
+.loading-screen img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
 
-        @media (min-width: 768px) {
-            .loading-screen {
-                display: none;
-            }
-        }
-    </style>
+@media (min-width: 768px) {
+    .loading-screen {
+        display: none;
+    }
+}
+</style>
 
-    <script>
-        // 기존 script.js 파일에 추가
-        document.addEventListener('DOMContentLoaded', () => {
-            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-            const loadingScreen = document.getElementById('loadingScreen');
-            
-            if (isMobile && loadingScreen) {
-                setTimeout(() => {
-                    loadingScreen.style.opacity = '0';
-                    setTimeout(() => {
-                        loadingScreen.style.display = 'none';
-                    }, 500);
-                }, 3000);
-            }
-        });
-    </script>
-
+<script>
+// 기존 script.js 파일에 추가
+document.addEventListener('DOMContentLoaded', () => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const loadingScreen = document.getElementById('loadingScreen');
+    
+    if (isMobile && loadingScreen) {
+        setTimeout(() => {
+            loadingScreen.style.opacity = '0';
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 500);
+        }, 3000);
+    }
+});
+</script>
     <div class="container">
         <h1>M I K O T O</h1>
 
         <div class="sample-selector">
-            <!-- 샘플 선택 버튼들 -->
             <button class="sample-btn active" data-sample="1">Sample 1</button>
             <button class="sample-btn" data-sample="2">Sample 2</button>
             <button class="sample-btn" data-sample="3">Sample 3</button>
@@ -85,7 +79,6 @@
 
         <div id="status" class="status"></div>
 
-        <!-- 필요한 요소들 추가 -->
         <div id="volumeIndicator" class="volume-indicator">
             <div id="volumeBar" class="volume-bar"></div>
         </div>
@@ -93,15 +86,12 @@
         <div id="resultContainer" class="result-container">
             <div id="pronunciationScore" class="score"></div>
             <div id="feedback" class="feedback"></div>
-            <!-- 발음 오류 패턴 표시를 위한 요소 추가 -->
-            <div id="errorPatterns" class="error-patterns"></div>
-            <!-- 차트 컨테이너 및 캔버스 -->
-            <div id="chartContainer" class="chart-container">
+            <div class="chart-container">
                 <canvas id="pronunciationChart"></canvas>
             </div>
         </div>
     </div>
 
+
 </body>
 </html>
-
