@@ -1,3 +1,4 @@
+
 // Global variables
 let audioContext;
 let analyser;
@@ -114,7 +115,6 @@ let pitchAnalyzer = {
         this.userPitchData = [];
     }
 };
-
 // Sample texts
 const sampleTexts = {
     1: `Whenever you walk along the street of small town of Sasebo, Japan, you will notice the long waiting line in front of the hamburger house. And looking around, you will find so many more hamburger places along the street. Then you might be thinking, why hamburger is so popular here? It's even a Japan.
@@ -154,9 +154,8 @@ function waitForSDK() {
 
 // Initialize audio context
 async function initAudioContext() {
-    if (!audioContext || audioContext.state === 'closed') {
+    if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        console.log('AudioContext created');
     }
     analyser = audioContext.createAnalyser();
 }
@@ -264,10 +263,6 @@ function stopRecording() {
 }
 
 // Start recording
-// ... 이전 코드는 동일합니다 ...
-
-// Start recording
-// Start recording
 async function startRecording() {
     console.log("Attempting to start recording...");
 
@@ -279,8 +274,9 @@ async function startRecording() {
 
     try {
         await initAudioContext();
-        console.log("AudioContext initialized");
-
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log("Microphone access granted");
+        
         const referenceText = document.querySelector('.practice-text').textContent;
         if (!referenceText) {
             console.error("Reference text not found");
@@ -290,8 +286,8 @@ async function startRecording() {
         const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
             referenceText,
             SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
-            SpeechSDK.PronunciationAssessmentGranularity.Phoneme, // 음소 수준
-            true // enableMiscue
+            SpeechSDK.PronunciationAssessmentGranularity.Word,
+            true
         );
 
         if (!speechConfig) {
@@ -299,7 +295,7 @@ async function startRecording() {
             return;
         }
 
-        audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+        audioConfig = SpeechSDK.AudioConfig.fromStreamInput(stream);
         recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
         pronunciationAssessmentConfig.applyTo(recognizer);
 
@@ -307,44 +303,26 @@ async function startRecording() {
         document.getElementById('startRecording').disabled = true;
         document.getElementById('status').textContent = 'Recording... Speak now!';
 
-        recognizer.recognizeOnceAsync(
-            (result) => {
-                if (result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
-                    const pronunciationResult = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
-                    console.log("Pronunciation Result:", pronunciationResult);
-                    analyzePronunciation(pronunciationResult, result.text);
-                    document.getElementById('status').textContent = 'Recognition complete';
-                } else {
-                    console.error('Speech not recognized:', result.reason);
-                    document.getElementById('status').textContent = 'Speech not recognized. Please try again.';
-                }
-                isRecording = false;
-                document.getElementById('startRecording').disabled = false;
-                recognizer.close();
-                recognizer = undefined;
-            },
-            (err) => {
-                console.error('Error recognizing speech:', err);
-                document.getElementById('status').textContent = `Error recognizing speech: ${err}`;
-                isRecording = false;
-                document.getElementById('startRecording').disabled = false;
-                recognizer.close();
-                recognizer = undefined;
+        recognizer.recognizing = (s, e) => {
+            console.log(`Recognizing: ${e.result.text}`);
+            document.getElementById('status').textContent = `Recognizing: ${e.result.text}`;
+        };
+
+        recognizer.recognized = (s, e) => {
+            if (e.result.text) {
+                const pronunciationResult = SpeechSDK.PronunciationAssessmentResult.fromResult(e.result);
+                console.log("Pronunciation Result:", pronunciationResult);
+                analyzePronunciation(pronunciationResult);
             }
-        );
+        };
+
+        recognizer.startContinuousRecognitionAsync();
+        setTimeout(stopRecording, 30000); // Auto-stop after 30 seconds
     } catch (error) {
         console.error('Error accessing microphone:', error);
         document.getElementById('status').textContent = `Error accessing microphone: ${error.message}`;
-        isRecording = false;
-        document.getElementById('startRecording').disabled = false;
     }
 }
-
-
-// stopRecording 함수는 제거하거나 주석 처리합니다.
-
-// ... 나머지 코드는 동일합니다 ...
-
 
 // Change sample
 function changeSample(sampleNumber) {
@@ -361,8 +339,8 @@ function changeSample(sampleNumber) {
     currentSample = sampleNumber;
 }
 
-// Analyze Pronunciation Results
-function analyzePronunciation(pronunciationResult, recognizedText) {
+// Add analyzePronunciation function
+function analyzePronunciation(pronunciationResult) {
     if (!pronunciationResult) {
         console.error('No pronunciation result to analyze');
         return;
@@ -370,83 +348,16 @@ function analyzePronunciation(pronunciationResult, recognizedText) {
 
     const scoreElement = document.getElementById('pronunciationScore');
     if (scoreElement) {
-        scoreElement.textContent = `발음 점수: ${pronunciationResult.pronunciationScore.toFixed(1)}점`;
+        scoreElement.textContent = `Pronunciation Score: ${pronunciationResult.pronunciationScore}`;
     }
 
     const feedbackElement = document.getElementById('feedback');
     if (feedbackElement) {
-        feedbackElement.textContent = `정확도: ${pronunciationResult.accuracyScore.toFixed(1)}점
-유창성: ${pronunciationResult.fluencyScore.toFixed(1)}점
-완전성: ${pronunciationResult.completenessScore.toFixed(1)}점\n\n`;
-
-        // 단어별 발음 점수 추가
-        const words = pronunciationResult.words;
-        if (words && words.length > 0) {
-            feedbackElement.textContent += '단어별 발음 점수:\n';
-            words.forEach(word => {
-                feedbackElement.textContent += `${word.word}: ${word.accuracyScore.toFixed(1)}점\n`;
-            });
-
-            // 시각화 도구 표시
-            displayPronunciationChart(words);
-
-            // 발음 오류 패턴 분석
-            analyzeErrorPatterns(words);
-        }
+        feedbackElement.textContent = `Accuracy: ${pronunciationResult.accuracyScore}
+            Fluency: ${pronunciationResult.fluencyScore}
+            Completeness: ${pronunciationResult.completenessScore}`;
     }
     pitchAnalyzer.displayResults();
-}
-
-// Display Pronunciation Chart using Chart.js
-function displayPronunciationChart(words) {
-    const ctx = document.getElementById('pronunciationChart').getContext('2d');
-    const wordLabels = words.map(word => word.word);
-    const wordScores = words.map(word => word.accuracyScore);
-
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: wordLabels,
-            datasets: [{
-                label: '단어별 발음 점수',
-                data: wordScores,
-                backgroundColor: 'rgba(54, 162, 235, 0.6)',
-            }]
-        },
-        options: {
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100
-                }
-            }
-        }
-    });
-}
-
-
-// Analyze Error Patterns
-function analyzeErrorPatterns(words) {
-    const errorPatterns = {};
-
-    words.forEach(word => {
-        if (word.accuracyScore < 80) { // 임계값은 필요에 따라 조정
-            errorPatterns[word.word] = word.accuracyScore;
-        }
-    });
-
-    // 오류 패턴을 사용자에게 피드백
-    const errorElement = document.getElementById('errorPatterns');
-    if (errorElement) {
-        if (Object.keys(errorPatterns).length > 0) {
-            errorElement.textContent = '발음 개선이 필요한 단어:\n';
-            for (const [word, score] of Object.entries(errorPatterns)) {
-                errorElement.textContent += `${word}: ${score.toFixed(1)}점\n`;
-            }
-        } else {
-            errorElement.textContent = '모든 단어를 잘 발음하셨습니다!';
-        }
-    }
 }
 
 // Initialize mobile support
