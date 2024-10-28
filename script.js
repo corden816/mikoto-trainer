@@ -154,8 +154,9 @@ function waitForSDK() {
 
 // Initialize audio context
 async function initAudioContext() {
-    if (!audioContext) {
+    if (!audioContext || audioContext.state === 'closed') {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        console.log('AudioContext created');
     }
     analyser = audioContext.createAnalyser();
 }
@@ -266,6 +267,7 @@ function stopRecording() {
 // ... 이전 코드는 동일합니다 ...
 
 // Start recording
+// Start recording
 async function startRecording() {
     console.log("Attempting to start recording...");
 
@@ -277,9 +279,8 @@ async function startRecording() {
 
     try {
         await initAudioContext();
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        console.log("Microphone access granted");
-        
+        console.log("AudioContext initialized");
+
         const referenceText = document.querySelector('.practice-text').textContent;
         if (!referenceText) {
             console.error("Reference text not found");
@@ -289,7 +290,7 @@ async function startRecording() {
         const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
             referenceText,
             SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
-            SpeechSDK.PronunciationAssessmentGranularity.Phoneme, // 음소 수준으로 변경
+            SpeechSDK.PronunciationAssessmentGranularity.Phoneme, // 음소 수준
             true // enableMiscue
         );
 
@@ -298,7 +299,7 @@ async function startRecording() {
             return;
         }
 
-        audioConfig = SpeechSDK.AudioConfig.fromStreamInput(stream);
+        audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
         recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
         pronunciationAssessmentConfig.applyTo(recognizer);
 
@@ -308,10 +309,14 @@ async function startRecording() {
 
         recognizer.recognizeOnceAsync(
             (result) => {
-                if (result.text) {
+                if (result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
                     const pronunciationResult = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
                     console.log("Pronunciation Result:", pronunciationResult);
                     analyzePronunciation(pronunciationResult, result.text);
+                    document.getElementById('status').textContent = 'Recognition complete';
+                } else {
+                    console.error('Speech not recognized:', result.reason);
+                    document.getElementById('status').textContent = 'Speech not recognized. Please try again.';
                 }
                 isRecording = false;
                 document.getElementById('startRecording').disabled = false;
@@ -330,8 +335,11 @@ async function startRecording() {
     } catch (error) {
         console.error('Error accessing microphone:', error);
         document.getElementById('status').textContent = `Error accessing microphone: ${error.message}`;
+        isRecording = false;
+        document.getElementById('startRecording').disabled = false;
     }
 }
+
 
 // stopRecording 함수는 제거하거나 주석 처리합니다.
 
