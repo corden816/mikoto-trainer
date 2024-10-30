@@ -348,6 +348,7 @@ async function startRecording() {
 }
 
 // 녹음 중지
+// 녹음 중지
 function stopRecording() {
     if (recognizer) {
         recognizer.stopContinuousRecognitionAsync(
@@ -372,8 +373,8 @@ function stopRecording() {
                     recognizer.close();
                 }
 
-                // pitchAnalyzer 데이터 리셋
-                pitchAnalyzer.reset();
+                // pitchAnalyzer 데이터 리셋 호출 제거
+                // pitchAnalyzer.reset();
             },
             (err) => {
                 console.error('Error stopping recognition:', err);
@@ -382,6 +383,33 @@ function stopRecording() {
         );
     }
 }
+
+// 발음 분석
+function analyzePronunciation(pronunciationResult) {
+    if (!pronunciationResult) {
+        console.error('No pronunciation result to analyze');
+        return;
+    }
+
+    const scoreElement = document.getElementById('pronunciationScore');
+    if (scoreElement) {
+        scoreElement.textContent = `Pronunciation Score: ${pronunciationResult.pronunciationScore}`;
+    }
+
+    const feedbackElement = document.getElementById('feedback');
+    if (feedbackElement) {
+        feedbackElement.textContent = `Accuracy: ${pronunciationResult.accuracyScore}
+Fluency: ${pronunciationResult.fluencyScore}
+Completeness: ${pronunciationResult.completenessScore}`;
+    }
+
+    // pitchAnalyzer 결과 표시
+    pitchAnalyzer.displayResults();
+
+    // 결과 표시 후 pitchAnalyzer 데이터 리셋
+    pitchAnalyzer.reset();
+}
+
 
 // 샘플 변경
 function changeSample(sampleNumber) {
