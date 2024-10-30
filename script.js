@@ -261,32 +261,30 @@ async function playNativeSpeaker() {
         if (!response.ok) throw new Error('Audio file not found');
         
         const blob = await response.blob();
-        currentAudio = new Audio(URL.createObjectURL(blob));
-        currentAudio.preload = 'auto';
+        const arrayBuffer = await blob.arrayBuffer();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
         
-        currentAudio.setAttribute('playsinline', '');
-        currentAudio.setAttribute('webkit-playsinline', '');
-
-        currentAudio.addEventListener('canplaythrough', () => {
-            statusElement.textContent = 'Playing audio...';
-            currentAudio.play()
-                .catch(error => {
-                    console.error('Play error:', error);
-                    statusElement.textContent = 'Tap to play audio';
-                });
-        });
-
-        currentAudio.addEventListener('ended', () => {
+        // 오디오 소스와 분석기 설정
+        const source = audioContext.createBufferSource();
+        const analyser = audioContext.createAnalyser();
+        source.buffer = audioBuffer;
+        source.connect(analyser);
+        analyser.connect(audioContext.destination);
+        
+        // 피치 데이터 수집
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Float32Array(bufferLength);
+        
+        source.onended = () => {
+            pitchAnalyzer.collectPitchData(dataArray, true);
             statusElement.textContent = 'Audio finished';
             playButton.disabled = false;
-        });
+        };
 
-        currentAudio.addEventListener('error', () => {
-            statusElement.textContent = 'Error playing audio';
-            playButton.disabled = false;
-        });
+        statusElement.textContent = 'Playing audio...';
+        source.start(0);
+        currentAudio = source;
 
-        currentAudio.load();
     } catch (error) {
         console.error('Audio fetch error:', error);
         statusElement.textContent = 'Error loading audio';
