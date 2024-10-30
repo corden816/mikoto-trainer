@@ -428,29 +428,6 @@ function changeSample(sampleNumber) {
     pitchAnalyzer.reset();
 }
 
-// 발음 분석
-function analyzePronunciation(pronunciationResult) {
-    if (!pronunciationResult) {
-        console.error('No pronunciation result to analyze');
-        return;
-    }
-
-    const scoreElement = document.getElementById('pronunciationScore');
-    if (scoreElement) {
-        scoreElement.textContent = `Pronunciation Score: ${pronunciationResult.pronunciationScore}`;
-    }
-
-    const feedbackElement = document.getElementById('feedback');
-    if (feedbackElement) {
-        feedbackElement.textContent = `Accuracy: ${pronunciationResult.accuracyScore}
-Fluency: ${pronunciationResult.fluencyScore}
-Completeness: ${pronunciationResult.completenessScore}`;
-    }
-
-    // pitchAnalyzer 결과 표시
-    pitchAnalyzer.displayResults();
-}
-
 // 모바일 지원 초기화
 function initMobileSupport() {
     const unlockAudioContext = async () => {
