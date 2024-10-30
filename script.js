@@ -1,7 +1,6 @@
 // 전역 변수
 let audioContext;
 let visualizerAnalyser;
-let mediaStreamSource;
 let speechConfig;
 let audioConfig;
 let recognizer;
@@ -17,12 +16,15 @@ let pitchAnalyzer = {
     userPitchData: [],
     isRecording: false,
     audioContext: null,
-    analyzer: null,
+    nativeAnalyzer: null,
+    userAnalyzer: null,
 
     init() {
         this.audioContext = audioContext; // 기존 audioContext를 사용
-        this.analyzer = this.audioContext.createAnalyser();
-        this.analyzer.fftSize = 2048;
+        this.nativeAnalyzer = this.audioContext.createAnalyser();
+        this.userAnalyzer = this.audioContext.createAnalyser();
+        this.nativeAnalyzer.fftSize = 2048;
+        this.userAnalyzer.fftSize = 2048;
     },
 
     collectPitchData(audioData, isNative = false) {
@@ -117,7 +119,7 @@ let pitchAnalyzer = {
 
     displayResults() {
         console.log('Native Pitch Data Length:', this.nativePitchData.length);
-    console.log('User Pitch Data Length:', this.userPitchData.length);
+        console.log('User Pitch Data Length:', this.userPitchData.length);
 
         const similarity = this.calculateSimilarity();
         const feedbackElement = document.getElementById('feedback');
@@ -141,8 +143,6 @@ let pitchAnalyzer = {
         this.userPitchData = [];
     }
 };
-
-
 
 // 샘플 텍스트
 const sampleTexts = {
@@ -256,38 +256,37 @@ async function playNativeSpeaker() {
     const audioPath = `audio/native-speaker${currentSample}.mp3`;
 
     try {
-       const audioElement = new Audio(audioPath);
+        const audioElement = new Audio(audioPath);
 
-const source = audioContext.createMediaElementSource(audioElement);
+        const source = audioContext.createMediaElementSource(audioElement);
 
-source.connect(pitchAnalyzer.analyzer);
-source.connect(visualizerAnalyser);
+        source.connect(pitchAnalyzer.nativeAnalyzer);
+        source.connect(visualizerAnalyser);
 
-pitchAnalyzer.analyzer.connect(audioContext.destination);
+        pitchAnalyzer.nativeAnalyzer.connect(audioContext.destination);
 
-audioElement.oncanplaythrough = () => {
-    audioElement.play();
-    // 데이터 수집 시작
-    const bufferLength = pitchAnalyzer.analyzer.frequencyBinCount;
-    const dataArray = new Float32Array(bufferLength);
+        audioElement.oncanplaythrough = () => {
+            audioElement.play();
+            // 데이터 수집 시작
+            const bufferLength = pitchAnalyzer.nativeAnalyzer.frequencyBinCount;
+            const dataArray = new Float32Array(bufferLength);
 
-    const dataCollectionInterval = setInterval(() => {
-        pitchAnalyzer.analyzer.getFloatTimeDomainData(dataArray);
-        pitchAnalyzer.collectPitchData(dataArray, true);
-    }, 100);
+            const dataCollectionInterval = setInterval(() => {
+                pitchAnalyzer.nativeAnalyzer.getFloatTimeDomainData(dataArray);
+                pitchAnalyzer.collectPitchData(dataArray, true);
+            }, 100);
 
-    audioElement.onended = () => {
-        clearInterval(dataCollectionInterval);
-        statusElement.textContent = 'Audio finished';
-        playButton.disabled = false;
-    };
+            audioElement.onended = () => {
+                clearInterval(dataCollectionInterval);
+                statusElement.textContent = 'Audio finished';
+                playButton.disabled = false;
+            };
 
-    statusElement.textContent = 'Playing audio...';
-    currentAudio = audioElement;
-};
+            statusElement.textContent = 'Playing audio...';
+            currentAudio = audioElement;
+        };
 
-audioElement.load(); // 오디오 로드 시작
-
+        audioElement.load(); // 오디오 로드 시작
 
     } catch (error) {
         console.error('Audio playback error:', error);
@@ -295,6 +294,7 @@ audioElement.load(); // 오디오 로드 시작
         playButton.disabled = false;
     }
 }
+
 // 녹음 시작
 async function startRecording() {
     console.log("Attempting to start recording...");
@@ -313,13 +313,13 @@ async function startRecording() {
         visualizeAudio(stream); // 오디오 시각화 시작
 
         const audioSource = audioContext.createMediaStreamSource(stream);
-        audioSource.connect(pitchAnalyzer.analyzer);
+        audioSource.connect(pitchAnalyzer.userAnalyzer);
         audioSource.connect(visualizerAnalyser);
 
-        const dataArray = new Float32Array(pitchAnalyzer.analyzer.frequencyBinCount);
+        const dataArray = new Float32Array(pitchAnalyzer.userAnalyzer.frequencyBinCount);
 
         function collectUserData() {
-            pitchAnalyzer.analyzer.getFloatTimeDomainData(dataArray);
+            pitchAnalyzer.userAnalyzer.getFloatTimeDomainData(dataArray);
             pitchAnalyzer.collectPitchData(dataArray, false);
         }
 
@@ -372,7 +372,6 @@ async function startRecording() {
     }
 }
 
-// 녹음 중지
 // 녹음 중지
 function stopRecording() {
     if (recognizer) {
@@ -434,7 +433,6 @@ Completeness: ${pronunciationResult.completenessScore}`;
     // 결과 표시 후 pitchAnalyzer 데이터 리셋
     pitchAnalyzer.reset();
 }
-
 
 // 샘플 변경
 function changeSample(sampleNumber) {
