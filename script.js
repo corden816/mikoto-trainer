@@ -276,7 +276,8 @@ async function playNativeSpeaker() {
         const dataArray = new Float32Array(bufferLength);
         
         source.onended = () => {
-   const dataCollectionInterval = setInterval(() => {
+// 오디오 소스와 분석기 설정 이후 부분을 이렇게 수정
+const dataCollectionInterval = setInterval(() => {
     analyser.getFloatTimeDomainData(dataArray);
     pitchAnalyzer.collectPitchData(dataArray, true);
 }, 100);
