@@ -1,5 +1,4 @@
-
-// Global variables
+// 전역 변수
 let audioContext;
 let analyser;
 let mediaStreamSource;
@@ -11,10 +10,11 @@ let currentAudio = null;
 let currentSample = 1;
 let audioVisualizerContext;
 let animationFrameId;
+let userDataInterval; // userDataInterval을 전역 변수로 선언
 
 let pitchAnalyzer = {
-    nativePitchData: [], 
-    userPitchData: [],   
+    nativePitchData: [],
+    userPitchData: [],
     isRecording: false,
     audioContext: null,
     analyzer: null,
@@ -29,9 +29,9 @@ let pitchAnalyzer = {
         const bufferLength = this.analyzer.frequencyBinCount;
         const dataArray = new Float32Array(bufferLength);
         this.analyzer.getFloatTimeDomainData(dataArray);
-        
+
         const pitch = this.calculatePitch(dataArray);
-        
+
         if (isNative) {
             this.nativePitchData.push(pitch);
         } else {
@@ -42,7 +42,7 @@ let pitchAnalyzer = {
     calculatePitch(buffer) {
         const sampleRate = this.audioContext.sampleRate;
         let correlation = new Array(buffer.length).fill(0);
-        
+
         for (let i = 0; i < buffer.length; i++) {
             for (let j = 0; j < buffer.length - i; j++) {
                 correlation[i] += buffer[j] * buffer[j + i];
@@ -97,11 +97,11 @@ let pitchAnalyzer = {
     displayResults() {
         const similarity = this.calculateSimilarity();
         const feedbackElement = document.getElementById('feedback');
-        
+
         if (feedbackElement) {
             let currentFeedback = feedbackElement.textContent;
             feedbackElement.textContent = currentFeedback + `\n\n억양 유사도: ${similarity.toFixed(1)}%\n`;
-            
+
             if (similarity >= 80) {
                 feedbackElement.textContent += "훌륭합니다! 원어민과 매우 비슷한 억양입니다.";
             } else if (similarity >= 60) {
@@ -117,18 +117,17 @@ let pitchAnalyzer = {
         this.userPitchData = [];
     }
 };
-// Sample texts
-const sampleTexts = {
-    1: `Whenever you walk along the street of small town of Sasebo, Japan, you will notice the long waiting line in front of the hamburger house. And looking around, you will find so many more hamburger places along the street. Then you might be thinking, why hamburger is so popular here? It's even a Japan.
 
-The hidden story of Sasebo hamburger is back to 1940's. During the World War 2, Sasebo was IJN's one of the biggest naval base. Several shipyards and factories for supply were located there. But after the war, the entire facilities were under controll of US navy, and Sasebo city becomes essential supply base for US navy pacific fleet. During the Korean War, more than 20,000 troops were sent to the base for operation.`,
-    2: "Sample text 2",
-    3: "Sample text 3",
-    4: "Sample text 4",
-    5: "Sample text 5"
+// 샘플 텍스트
+const sampleTexts = {
+    1: `...`, // 샘플 텍스트 내용
+    2: "샘플 텍스트 2",
+    3: "샘플 텍스트 3",
+    4: "샘플 텍스트 4",
+    5: "샘플 텍스트 5"
 };
 
-// Initialize Azure Speech SDK
+// Azure Speech SDK 초기화
 function initSpeechSDK() {
     if (window.SpeechSDK) {
         console.log("Speech SDK is available");
@@ -140,7 +139,7 @@ function initSpeechSDK() {
     }
 }
 
-// Wait until the Speech SDK is loaded
+// SDK 로딩 대기
 function waitForSDK() {
     return new Promise((resolve) => {
         const check = () => {
@@ -154,7 +153,16 @@ function waitForSDK() {
     });
 }
 
-// Initialize audio context
+// AudioContext 초기화
+function initAudioContext() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 2048;
+    }
+}
+
+// 오디오 시각화 초기화
 function initAudioVisualizer() {
     const canvas = document.getElementById('audioVisualizer');
     audioVisualizerContext = canvas.getContext('2d');
@@ -162,6 +170,7 @@ function initAudioVisualizer() {
 
 // 오디오 시각화 함수
 function visualizeAudio(stream) {
+    initAudioContext(); // audioContext 초기화
     const canvas = document.getElementById('audioVisualizer');
     const audioSource = audioContext.createMediaStreamSource(stream);
     audioSource.connect(analyser);
@@ -202,40 +211,14 @@ function visualizeAudio(stream) {
     draw();
 }
 
-// Azure Speech SDK 초기화
-function initSpeechSDK() {
-    if (window.SpeechSDK) {
-        console.log("Speech SDK is available");
-        speechConfig = SpeechSDK.SpeechConfig.fromSubscription(window.config.apiKey, window.config.region);
-        speechConfig.speechRecognitionLanguage = "en-US";
-        console.log('Speech SDK initialized successfully');
-    } else {
-        console.error('Speech SDK not found');
-    }
-}
-
-// SDK 로딩 대기
-function waitForSDK() {
-    return new Promise((resolve) => {
-        const check = () => {
-            if (window.SpeechSDK) {
-                resolve();
-            } else {
-                setTimeout(check, 100);
-            }
-        };
-        check();
-    });
-}
-
-// 오디오 컨텍스트 초기화
+// 네이티브 스피커 오디오 재생
 async function playNativeSpeaker() {
+    initAudioContext(); // audioContext 초기화
     const statusElement = document.getElementById('status');
     const playButton = document.getElementById('playNative');
-    
+
     if (currentAudio) {
-        currentAudio.pause();
-        currentAudio.currentTime = 0;
+        currentAudio.stop(0);
     }
 
     statusElement.textContent = 'Loading audio...';
@@ -246,24 +229,23 @@ async function playNativeSpeaker() {
     }
 
     const audioPath = `audio/native-speaker${currentSample}.mp3?v=${new Date().getTime()}`;
-    
+
     try {
         const response = await fetch(audioPath);
         if (!response.ok) throw new Error('Audio file not found');
-        
-        const blob = await response.blob();
-        const arrayBuffer = await blob.arrayBuffer();
+
+        const arrayBuffer = await response.arrayBuffer();
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-        
+
         const source = audioContext.createBufferSource();
         const analyser = audioContext.createAnalyser();
         source.buffer = audioBuffer;
         source.connect(analyser);
         analyser.connect(audioContext.destination);
-        
+
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Float32Array(bufferLength);
-        
+
         const dataCollectionInterval = setInterval(() => {
             analyser.getFloatTimeDomainData(dataArray);
             pitchAnalyzer.collectPitchData(dataArray, true);
@@ -297,17 +279,19 @@ async function startRecording() {
     }
 
     try {
-        await initAudioContext();
+        initAudioContext(); // audioContext 초기화
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         console.log("Microphone access granted");
-        
-        visualizeAudio(stream);  // 오디오 시각화 시작
+
+        visualizeAudio(stream); // 오디오 시각화 시작
         const dataArray = new Float32Array(analyser.frequencyBinCount);
-function collectUserData() {
-    analyser.getFloatTimeDomainData(dataArray);
-    pitchAnalyzer.collectPitchData(dataArray, false);
-}
-const userDataInterval = setInterval(collectUserData, 100);
+
+        function collectUserData() {
+            analyser.getFloatTimeDomainData(dataArray);
+            pitchAnalyzer.collectPitchData(dataArray, false);
+        }
+
+        userDataInterval = setInterval(collectUserData, 100);
 
         const referenceText = document.querySelector('.practice-text').textContent;
         if (!referenceText) {
@@ -361,19 +345,19 @@ function stopRecording() {
     if (recognizer) {
         recognizer.stopContinuousRecognitionAsync(
             () => {
-                   if (userDataInterval) {
+                if (userDataInterval) {
                     clearInterval(userDataInterval);
-                 }      
+                }
                 console.log('Recognition stopped');
                 document.getElementById('status').textContent = 'Recording stopped';
                 isRecording = false;
                 document.getElementById('startRecording').disabled = false;
                 document.getElementById('stopRecording').disabled = true;
-                
+
                 if (animationFrameId) {
                     cancelAnimationFrame(animationFrameId);
                 }
-                
+
                 if (audioConfig) {
                     audioConfig.close();
                 }
@@ -395,11 +379,11 @@ function changeSample(sampleNumber) {
     if (practiceText) {
         practiceText.textContent = sampleTexts[sampleNumber] || "Sample text not found";
     }
-    
+
     document.querySelectorAll('.sample-btn').forEach(btn => {
         btn.classList.toggle('active', parseInt(btn.dataset.sample) === sampleNumber);
     });
-    
+
     currentSample = sampleNumber;
 }
 
@@ -427,10 +411,11 @@ function analyzePronunciation(pronunciationResult) {
 // 모바일 지원 초기화
 function initMobileSupport() {
     const unlockAudioContext = async () => {
-        if (audioContext && audioContext.state === 'suspended') {
+        initAudioContext(); // audioContext 초기화
+        if (audioContext.state === 'suspended') {
             await audioContext.resume();
         }
-        if (pitchAnalyzer.audioContext && pitchAnalyzer.audioContext.state === 'suspended') {
+        if (pitchAnalyzer.audioContext.state === 'suspended') {
             await pitchAnalyzer.audioContext.resume();
         }
         document.removeEventListener('touchstart', unlockAudioContext);
@@ -449,20 +434,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Canvas element:', canvas);
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-        
+
         pitchAnalyzer.init();
         await waitForSDK();
         initSpeechSDK();
-        
+
         if (isMobile) {
             console.log('Mobile device detected:', isiOS ? 'iOS' : 'Android');
             initMobileSupport();
-            
+
             document.addEventListener('touchstart', async () => {
-                if (audioContext && audioContext.state === 'suspended') {
+                initAudioContext(); // audioContext 초기화
+                if (audioContext.state === 'suspended') {
                     await audioContext.resume();
                 }
-                if (pitchAnalyzer.audioContext && pitchAnalyzer.audioContext.state === 'suspended') {
+                if (pitchAnalyzer.audioContext.state === 'suspended') {
                     await pitchAnalyzer.audioContext.resume();
                 }
             }, { once: true });
