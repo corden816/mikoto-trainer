@@ -162,6 +162,7 @@ function initAudioVisualizer() {
 
 // 오디오 시각화 함수
 function visualizeAudio(stream) {
+    const canvas = document.getElementById('audioVisualizer');
     const audioSource = audioContext.createMediaStreamSource(stream);
     audioSource.connect(analyser);
     analyser.fftSize = 2048;
@@ -445,7 +446,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
         
-        initAudioVisualizer();
         pitchAnalyzer.init();
         await waitForSDK();
         initSpeechSDK();
