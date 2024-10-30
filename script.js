@@ -127,6 +127,7 @@ let pitchAnalyzer = {
 // 샘플 텍스트
 const sampleTexts = {
     1: `Here's everything you need to know about the new McDonald's app. It's all the things you love about McDonald's at your fingertips.`,
+    2: `토키와다이노 레에루간 미사카 미코토 데스. 안타와 코코니 나니오 싯테루노?`
     // 다른 샘플 텍스트...
 };
 
