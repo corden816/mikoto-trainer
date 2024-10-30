@@ -148,7 +148,7 @@ let pitchAnalyzer = {
 const sampleTexts = {
     1: `Here's everything you need to know about the new McDonald's app. It's all the things you love about McDonald's at your fingertips.`,
     2: `토키와다이노 레에루간 미사카 미코토 데스. 안타와 코코니 나니오 싯테루노?`
-    // 다른 샘플 텍스트...
+    // 다른 샘플 텍스트를 추가할 수 있습니다.
 };
 
 // Azure Speech SDK 초기화
@@ -181,6 +181,7 @@ function waitForSDK() {
 function initAudioContext() {
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        pitchAnalyzer.init(); // audioContext 생성 후 pitchAnalyzer 초기화
     }
 }
 
@@ -237,7 +238,7 @@ function visualizeAudio(stream) {
 
 // 네이티브 스피커 오디오 재생
 async function playNativeSpeaker() {
-    initAudioContext(); // audioContext 초기화
+    initAudioContext(); // 사용자 제스처 이후에 AudioContext 초기화
     const statusElement = document.getElementById('status');
     const playButton = document.getElementById('playNative');
 
@@ -306,7 +307,7 @@ async function startRecording() {
     }
 
     try {
-        initAudioContext(); // audioContext 초기화
+        initAudioContext(); // 사용자 제스처 이후에 AudioContext 초기화
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         console.log("Microphone access granted");
 
@@ -458,7 +459,7 @@ function initMobileSupport() {
         if (audioContext.state === 'suspended') {
             await audioContext.resume();
         }
-        if (pitchAnalyzer.audioContext.state === 'suspended') {
+        if (pitchAnalyzer.audioContext && pitchAnalyzer.audioContext.state === 'suspended') {
             await pitchAnalyzer.audioContext.resume();
         }
         document.removeEventListener('touchstart', unlockAudioContext);
@@ -472,13 +473,10 @@ function initMobileSupport() {
 // 초기화
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        initAudioContext(); // audioContext 초기화
         initAudioVisualizer();
 
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-        pitchAnalyzer.init();
 
         await waitForSDK();
         initSpeechSDK();
