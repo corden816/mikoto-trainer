@@ -182,6 +182,7 @@ function initAudioContext() {
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         pitchAnalyzer.init(); // audioContext 생성 후 pitchAnalyzer 초기화
+        initAudioVisualizer(); // audioContext 초기화 후 오디오 시각화 초기화
     }
 }
 
@@ -195,9 +196,12 @@ function initAudioVisualizer() {
 
 // 오디오 시각화 함수
 function visualizeAudio(stream) {
-    const canvas = document.getElementById('audioVisualizer'); // canvas 변수 선언
+    if (!audioContext) {
+        initAudioContext(); // audioContext 초기화
+    }
+    const canvas = document.getElementById('audioVisualizer');
     const audioSource = audioContext.createMediaStreamSource(stream);
-    audioSource.connect(visualizerAnalyser); // 시각화를 위한 analyser에 연결
+    audioSource.connect(visualizerAnalyser);
 
     const bufferLength = visualizerAnalyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
@@ -237,7 +241,7 @@ function visualizeAudio(stream) {
 
 // 네이티브 스피커 오디오 재생
 async function playNativeSpeaker() {
-    initAudioContext(); // 사용자 제스처 이후에 AudioContext 초기화
+    initAudioContext(); // audioContext 초기화
     const statusElement = document.getElementById('status');
     const playButton = document.getElementById('playNative');
 
@@ -306,7 +310,7 @@ async function startRecording() {
     }
 
     try {
-        initAudioContext(); // 사용자 제스처 이후에 AudioContext 초기화
+        initAudioContext(); // audioContext 초기화
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         console.log("Microphone access granted");
 
@@ -451,24 +455,11 @@ function changeSample(sampleNumber) {
     pitchAnalyzer.reset();
 }
 
-// 모바일 지원 초기화
-function initMobileSupport() {
-    const unlockAudioContext = async () => {
-        if (audioContext && audioContext.state === 'suspended') {
-            await audioContext.resume();
-        }
-        document.removeEventListener('touchstart', unlockAudioContext);
-        document.removeEventListener('click', unlockAudioContext);
-    };
-
-    document.addEventListener('touchstart', unlockAudioContext);
-    document.addEventListener('click', unlockAudioContext);
-}
-
 // 초기화
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         // initAudioContext(); // AudioContext 초기화를 여기서 제거합니다.
+        // initAudioVisualizer(); // 제거
 
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -500,3 +491,4 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Initialization error:', error);
     }
 });
+
