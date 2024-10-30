@@ -1,6 +1,6 @@
 // 전역 변수
 let audioContext;
-let analyser;
+let visualizerAnalyser;
 let mediaStreamSource;
 let speechConfig;
 let audioConfig;
@@ -10,7 +10,7 @@ let currentAudio = null;
 let currentSample = 1;
 let audioVisualizerContext;
 let animationFrameId;
-let userDataInterval; // userDataInterval을 전역 변수로 선언
+let userDataInterval;
 
 let pitchAnalyzer = {
     nativePitchData: [],
@@ -26,11 +26,7 @@ let pitchAnalyzer = {
     },
 
     collectPitchData(audioData, isNative = false) {
-        const bufferLength = this.analyzer.frequencyBinCount;
-        const dataArray = new Float32Array(bufferLength);
-        this.analyzer.getFloatTimeDomainData(dataArray);
-
-        const pitch = this.calculatePitch(dataArray);
+        const pitch = this.calculatePitch(audioData);
 
         if (isNative) {
             this.nativePitchData.push(pitch);
@@ -120,7 +116,7 @@ let pitchAnalyzer = {
 
 // 샘플 텍스트
 const sampleTexts = {
-    1: `Here's everything you need to know about the new mcdonald's app. It's all the things you love about the mcdonalds at your finger tips.`, // 샘플 텍스트 내용
+    1: `Here's everything you need to know about the new McDonald's app. It's all the things you love about McDonald's at your fingertips.`,
     2: "샘플 텍스트 2",
     3: "샘플 텍스트 3",
     4: "샘플 텍스트 4",
@@ -154,34 +150,32 @@ function waitForSDK() {
 }
 
 // AudioContext 초기화
-async function initAudioContext() {
+function initAudioContext() {
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
-    analyser = audioContext.createAnalyser();
-    analyser.fftSize = 2048;
-    await audioContext.resume();
 }
 
 // 오디오 시각화 초기화
 function initAudioVisualizer() {
     const canvas = document.getElementById('audioVisualizer');
     audioVisualizerContext = canvas.getContext('2d');
+    visualizerAnalyser = audioContext.createAnalyser();
+    visualizerAnalyser.fftSize = 2048;
 }
 
 // 오디오 시각화 함수
-async function visualizeAudio(stream) {
-    await initAudioContext(); // audioContext 초기화
-    const canvas = document.getElementById('audioVisualizer');
+function visualizeAudio(stream) {
+    initAudioContext(); // audioContext 초기화
     const audioSource = audioContext.createMediaStreamSource(stream);
-    audioSource.connect(analyser);
-    analyser.fftSize = 2048;
-    const bufferLength = analyser.frequencyBinCount;
+    audioSource.connect(visualizerAnalyser); // 시각화를 위한 analyser에 연결
+
+    const bufferLength = visualizerAnalyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
 
     function draw() {
         animationFrameId = requestAnimationFrame(draw);
-        analyser.getByteTimeDomainData(dataArray);
+        visualizerAnalyser.getByteTimeDomainData(dataArray);
 
         audioVisualizerContext.fillStyle = 'rgb(200, 200, 200)';
         audioVisualizerContext.fillRect(0, 0, canvas.width, canvas.height);
@@ -214,7 +208,7 @@ async function visualizeAudio(stream) {
 
 // 네이티브 스피커 오디오 재생
 async function playNativeSpeaker() {
-    await initAudioContext(); // audioContext 초기화
+    initAudioContext(); // audioContext 초기화
     const statusElement = document.getElementById('status');
     const playButton = document.getElementById('playNative');
 
@@ -239,16 +233,20 @@ async function playNativeSpeaker() {
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
         const source = audioContext.createBufferSource();
-        const analyser = audioContext.createAnalyser();
         source.buffer = audioBuffer;
-        source.connect(analyser);
-        analyser.connect(audioContext.destination);
 
-        const bufferLength = analyser.frequencyBinCount;
+        // pitchAnalyzer.analyzer에 오디오 소스 연결
+        source.connect(pitchAnalyzer.analyzer);
+        pitchAnalyzer.analyzer.connect(audioContext.destination);
+
+        // 필요한 경우 오디오 시각화를 위해 visualizerAnalyser에도 연결
+        source.connect(visualizerAnalyser);
+
+        const bufferLength = pitchAnalyzer.analyzer.frequencyBinCount;
         const dataArray = new Float32Array(bufferLength);
 
         const dataCollectionInterval = setInterval(() => {
-            analyser.getFloatTimeDomainData(dataArray);
+            pitchAnalyzer.analyzer.getFloatTimeDomainData(dataArray);
             pitchAnalyzer.collectPitchData(dataArray, true);
         }, 100);
 
@@ -280,15 +278,21 @@ async function startRecording() {
     }
 
     try {
-        await initAudioContext(); // audioContext 초기화
+        initAudioContext(); // audioContext 초기화
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         console.log("Microphone access granted");
 
         visualizeAudio(stream); // 오디오 시각화 시작
-        const dataArray = new Float32Array(analyser.frequencyBinCount);
+
+        // 마이크 입력을 pitchAnalyzer.analyzer와 visualizerAnalyser에 연결
+        const audioSource = audioContext.createMediaStreamSource(stream);
+        audioSource.connect(pitchAnalyzer.analyzer);
+        audioSource.connect(visualizerAnalyser);
+
+        const dataArray = new Float32Array(pitchAnalyzer.analyzer.frequencyBinCount);
 
         function collectUserData() {
-            analyser.getFloatTimeDomainData(dataArray);
+            pitchAnalyzer.analyzer.getFloatTimeDomainData(dataArray);
             pitchAnalyzer.collectPitchData(dataArray, false);
         }
 
@@ -365,6 +369,9 @@ function stopRecording() {
                 if (recognizer) {
                     recognizer.close();
                 }
+
+                // pitchAnalyzer 데이터 리셋
+                pitchAnalyzer.reset();
             },
             (err) => {
                 console.error('Error stopping recognition:', err);
@@ -386,6 +393,9 @@ function changeSample(sampleNumber) {
     });
 
     currentSample = sampleNumber;
+
+    // pitchAnalyzer 데이터 리셋
+    pitchAnalyzer.reset();
 }
 
 // 발음 분석
@@ -403,9 +413,11 @@ function analyzePronunciation(pronunciationResult) {
     const feedbackElement = document.getElementById('feedback');
     if (feedbackElement) {
         feedbackElement.textContent = `Accuracy: ${pronunciationResult.accuracyScore}
-            Fluency: ${pronunciationResult.fluencyScore}
-            Completeness: ${pronunciationResult.completenessScore}`;
+Fluency: ${pronunciationResult.fluencyScore}
+Completeness: ${pronunciationResult.completenessScore}`;
     }
+
+    // pitchAnalyzer 결과 표시
     pitchAnalyzer.displayResults();
 }
 
@@ -430,13 +442,14 @@ function initMobileSupport() {
 // 초기화
 document.addEventListener('DOMContentLoaded', async () => {
     try {
+        initAudioContext(); // audioContext 초기화
         initAudioVisualizer();
-        const canvas = document.getElementById('audioVisualizer');
-        console.log('Canvas element:', canvas);
+
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
         pitchAnalyzer.init();
+
         await waitForSDK();
         initSpeechSDK();
 
@@ -445,7 +458,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             initMobileSupport();
 
             document.addEventListener('touchstart', async () => {
-                initAudioContext(); // audioContext 초기화
                 if (audioContext.state === 'suspended') {
                     await audioContext.resume();
                 }
@@ -474,3 +486,4 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Initialization error:', error);
     }
 });
+
