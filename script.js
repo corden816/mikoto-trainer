@@ -28,10 +28,12 @@ let pitchAnalyzer = {
     collectPitchData(audioData, isNative = false) {
         const pitch = this.calculatePitch(audioData);
 
-        if (isNative) {
-            this.nativePitchData.push(pitch);
-        } else {
-            this.userPitchData.push(pitch);
+        if (pitch > 0 && !isNaN(pitch) && isFinite(pitch)) {
+            if (isNative) {
+                this.nativePitchData.push(pitch);
+            } else {
+                this.userPitchData.push(pitch);
+            }
         }
     },
 
@@ -45,31 +47,33 @@ let pitchAnalyzer = {
             }
         }
 
-        let peak = 0;
+        let peak = -1;
+        let maxCorrelation = 0;
+
         for (let i = 1; i < correlation.length; i++) {
-            if (correlation[i] > correlation[peak]) {
+            if (correlation[i] > maxCorrelation) {
+                maxCorrelation = correlation[i];
                 peak = i;
             }
         }
 
-        return sampleRate / peak;
-    },
-
-    calculateSimilarity() {
-        if (this.nativePitchData.length === 0 || this.userPitchData.length === 0) {
-            return 0;
+        if (peak <= 0) {
+            return 0; // 피치를 0으로 반환하여 이후 계산에서 제외
+        } else {
+            return sampleRate / peak;
         }
-
-        const normalizedNative = this.normalizePitchData(this.nativePitchData);
-        const normalizedUser = this.normalizePitchData(this.userPitchData);
-
-        let similarity = this.calculateCorrelation(normalizedNative, normalizedUser);
-        return Math.max(0, similarity) * 100;
     },
 
     normalizePitchData(data) {
-        const mean = data.reduce((a, b) => a + b) / data.length;
-        const std = Math.sqrt(data.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / data.length);
+        const mean = data.reduce((a, b) => a + b, 0) / data.length;
+        const variance = data.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / data.length;
+        const std = Math.sqrt(variance);
+
+        if (std === 0 || isNaN(std)) {
+            // 표준편차가 0이거나 NaN이면 0으로 채워진 배열 반환
+            return data.map(() => 0);
+        }
+
         return data.map(x => (x - mean) / std);
     },
 
@@ -87,6 +91,11 @@ let pitchAnalyzer = {
 
         const num = pSum - (sum1 * sum2 / length);
         const den = Math.sqrt((sum1Sq - sum1 ** 2 / length) * (sum2Sq - sum2 ** 2 / length));
+
+        if (den === 0 || isNaN(den)) {
+            return 0; // 상관관계를 계산할 수 없으므로 0 반환
+        }
+
         return num / den;
     },
 
@@ -113,6 +122,7 @@ let pitchAnalyzer = {
         this.userPitchData = [];
     }
 };
+
 
 // 샘플 텍스트
 const sampleTexts = {
