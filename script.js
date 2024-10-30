@@ -99,6 +99,22 @@ let pitchAnalyzer = {
         return num / den;
     },
 
+    calculateSimilarity() {
+        if (this.nativePitchData.length === 0 || this.userPitchData.length === 0) {
+            console.warn('Insufficient data for similarity calculation.');
+            return 0;
+        }
+
+        const normalizedNative = this.normalizePitchData(this.nativePitchData);
+        const normalizedUser = this.normalizePitchData(this.userPitchData);
+
+        let similarity = this.calculateCorrelation(normalizedNative, normalizedUser);
+
+        console.log('Calculated Similarity:', similarity);
+
+        return Math.max(0, similarity) * 100;
+    },
+
     displayResults() {
         const similarity = this.calculateSimilarity();
         const feedbackElement = document.getElementById('feedback');
@@ -122,6 +138,7 @@ let pitchAnalyzer = {
         this.userPitchData = [];
     }
 };
+
 
 
 // 샘플 텍스트
