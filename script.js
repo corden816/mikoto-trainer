@@ -154,12 +154,16 @@ function waitForSDK() {
 }
 
 // AudioContext 초기화
-function initAudioContext() {
+async function initAudioContext() {
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 2048;
     }
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 2048;
+    if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+    }
+    return audioContext;
 }
 
 // 오디오 시각화 초기화
@@ -169,8 +173,8 @@ function initAudioVisualizer() {
 }
 
 // 오디오 시각화 함수
-function visualizeAudio(stream) {
-    initAudioContext(); // audioContext 초기화
+async function visualizeAudio(stream) {
+    await initAudioContext(); // audioContext 초기화
     const canvas = document.getElementById('audioVisualizer');
     const audioSource = audioContext.createMediaStreamSource(stream);
     audioSource.connect(analyser);
@@ -213,7 +217,7 @@ function visualizeAudio(stream) {
 
 // 네이티브 스피커 오디오 재생
 async function playNativeSpeaker() {
-    initAudioContext(); // audioContext 초기화
+    await initAudioContext(); // audioContext 초기화
     const statusElement = document.getElementById('status');
     const playButton = document.getElementById('playNative');
 
@@ -279,8 +283,8 @@ async function startRecording() {
     }
 
     try {
-        initAudioContext(); // audioContext 초기화
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    await initAudioContext();
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         console.log("Microphone access granted");
 
         visualizeAudio(stream); // 오디오 시각화 시작
