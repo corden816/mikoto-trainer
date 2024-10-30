@@ -443,6 +443,7 @@ function initMobileSupport() {
 // 초기화
 document.addEventListener('DOMContentLoaded', async () => {
     try {
+        initAudioVisualizer();
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
         
