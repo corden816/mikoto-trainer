@@ -229,15 +229,6 @@ function waitForSDK() {
 }
 
 // 오디오 컨텍스트 초기화
-async function initAudioContext() {
-    if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    analyser = audioContext.createAnalyser();
-    analyser.fftSize = 2048;
-}
-
-// 네이티브 스피커 오디오 재생
 async function playNativeSpeaker() {
     const statusElement = document.getElementById('status');
     const playButton = document.getElementById('playNative');
@@ -256,7 +247,7 @@ async function playNativeSpeaker() {
 
     const audioPath = `audio/native-speaker${currentSample}.mp3?v=${new Date().getTime()}`;
     
-     try {
+    try {
         const response = await fetch(audioPath);
         if (!response.ok) throw new Error('Audio file not found');
         
