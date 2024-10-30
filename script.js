@@ -153,15 +153,89 @@ function waitForSDK() {
 }
 
 // Initialize audio context
+function initAudioVisualizer() {
+    const canvas = document.getElementById('audioVisualizer');
+    audioVisualizerContext = canvas.getContext('2d');
+}
+
+// 오디오 시각화 함수
+function visualizeAudio(stream) {
+    const audioSource = audioContext.createMediaStreamSource(stream);
+    audioSource.connect(analyser);
+    analyser.fftSize = 2048;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    function draw() {
+        animationFrameId = requestAnimationFrame(draw);
+        analyser.getByteTimeDomainData(dataArray);
+
+        audioVisualizerContext.fillStyle = 'rgb(200, 200, 200)';
+        audioVisualizerContext.fillRect(0, 0, canvas.width, canvas.height);
+        audioVisualizerContext.lineWidth = 2;
+        audioVisualizerContext.strokeStyle = 'rgb(0, 0, 0)';
+        audioVisualizerContext.beginPath();
+
+        const sliceWidth = canvas.width * 1.0 / bufferLength;
+        let x = 0;
+
+        for (let i = 0; i < bufferLength; i++) {
+            const v = dataArray[i] / 128.0;
+            const y = v * canvas.height / 2;
+
+            if (i === 0) {
+                audioVisualizerContext.moveTo(x, y);
+            } else {
+                audioVisualizerContext.lineTo(x, y);
+            }
+
+            x += sliceWidth;
+        }
+
+        audioVisualizerContext.lineTo(canvas.width, canvas.height / 2);
+        audioVisualizerContext.stroke();
+    }
+
+    draw();
+}
+
+// Azure Speech SDK 초기화
+function initSpeechSDK() {
+    if (window.SpeechSDK) {
+        console.log("Speech SDK is available");
+        speechConfig = SpeechSDK.SpeechConfig.fromSubscription(window.config.apiKey, window.config.region);
+        speechConfig.speechRecognitionLanguage = "en-US";
+        console.log('Speech SDK initialized successfully');
+    } else {
+        console.error('Speech SDK not found');
+    }
+}
+
+// SDK 로딩 대기
+function waitForSDK() {
+    return new Promise((resolve) => {
+        const check = () => {
+            if (window.SpeechSDK) {
+                resolve();
+            } else {
+                setTimeout(check, 100);
+            }
+        };
+        check();
+    });
+}
+
+// 오디오 컨텍스트 초기화
 async function initAudioContext() {
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
     analyser = audioContext.createAnalyser();
+    analyser.fftSize = 2048;
 }
 
-// Play native speaker audio
-function playNativeSpeaker() {
+// 네이티브 스피커 오디오 재생
+async function playNativeSpeaker() {
     const statusElement = document.getElementById('status');
     const playButton = document.getElementById('playNative');
     
@@ -173,71 +247,51 @@ function playNativeSpeaker() {
     statusElement.textContent = 'Loading audio...';
     playButton.disabled = true;
 
-    // iOS Safari를 위한 오디오 컨텍스트 초기화
     if (audioContext && audioContext.state === 'suspended') {
-        audioContext.resume();
+        await audioContext.resume();
     }
 
     const audioPath = `audio/native-speaker${currentSample}.mp3?v=${new Date().getTime()}`;
     
-    fetch(audioPath)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Audio file not found');
-            }
-            return response.blob();
-        })
-        .then(blob => {
-            currentAudio = new Audio(URL.createObjectURL(blob));
-            currentAudio.preload = 'auto';
+    try {
+        const response = await fetch(audioPath);
+        if (!response.ok) throw new Error('Audio file not found');
+        
+        const blob = await response.blob();
+        currentAudio = new Audio(URL.createObjectURL(blob));
+        currentAudio.preload = 'auto';
+        
+        currentAudio.setAttribute('playsinline', '');
+        currentAudio.setAttribute('webkit-playsinline', '');
 
-            // iOS Safari를 위한 추가 설정
-            currentAudio.setAttribute('playsinline', '');
-            currentAudio.setAttribute('webkit-playsinline', '');
+        currentAudio.addEventListener('canplaythrough', () => {
+            statusElement.textContent = 'Playing audio...';
+            currentAudio.play()
+                .catch(error => {
+                    console.error('Play error:', error);
+                    statusElement.textContent = 'Tap to play audio';
+                });
+        });
 
-            currentAudio.addEventListener('canplaythrough', () => {
-                statusElement.textContent = 'Playing audio...';
-                currentAudio.play()
-                    .then(() => {
-                        console.log('Audio playing successfully');
-                    })
-                    .catch(error => {
-                        console.error('Play error:', error);
-                        statusElement.textContent = 'Tap to play audio';
-                        
-                        // iOS에서의 수동 재생 처리
-                        const playAudioManually = () => {
-                            currentAudio.play()
-                                .then(() => {
-                                    statusElement.textContent = 'Playing audio...';
-                                })
-                                .catch(e => console.error('Manual play failed:', e));
-                            statusElement.removeEventListener('click', playAudioManually);
-                        };
-                        statusElement.addEventListener('click', playAudioManually);
-                    });
-            });
-
-            currentAudio.addEventListener('ended', () => {
-                statusElement.textContent = 'Audio finished';
-                playButton.disabled = false;
-            });
-
-            currentAudio.addEventListener('error', () => {
-                statusElement.textContent = 'Error playing audio';
-                playButton.disabled = false;
-            });
-
-            currentAudio.load();
-        })
-        .catch(error => {
-            console.error('Audio fetch error:', error);
-            statusElement.textContent = 'Error loading audio';
+        currentAudio.addEventListener('ended', () => {
+            statusElement.textContent = 'Audio finished';
             playButton.disabled = false;
         });
+
+        currentAudio.addEventListener('error', () => {
+            statusElement.textContent = 'Error playing audio';
+            playButton.disabled = false;
+        });
+
+        currentAudio.load();
+    } catch (error) {
+        console.error('Audio fetch error:', error);
+        statusElement.textContent = 'Error loading audio';
+        playButton.disabled = false;
+    }
 }
 
-// Stop recording
+// 녹음 시작
 async function startRecording() {
     console.log("Attempting to start recording...");
 
@@ -252,6 +306,8 @@ async function startRecording() {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         console.log("Microphone access granted");
         
+        visualizeAudio(stream);  // 오디오 시각화 시작
+
         const referenceText = document.querySelector('.practice-text').textContent;
         if (!referenceText) {
             console.error("Reference text not found");
@@ -276,7 +332,7 @@ async function startRecording() {
 
         isRecording = true;
         document.getElementById('startRecording').disabled = true;
-        document.getElementById('stopRecording').disabled = false;  // 추가된 부분
+        document.getElementById('stopRecording').disabled = false;
         document.getElementById('status').textContent = 'Recording... Speak now!';
 
         recognizer.recognizing = (s, e) => {
@@ -299,6 +355,7 @@ async function startRecording() {
     }
 }
 
+// 녹음 중지
 function stopRecording() {
     if (recognizer) {
         recognizer.stopContinuousRecognitionAsync(
@@ -307,7 +364,11 @@ function stopRecording() {
                 document.getElementById('status').textContent = 'Recording stopped';
                 isRecording = false;
                 document.getElementById('startRecording').disabled = false;
-                document.getElementById('stopRecording').disabled = true;  // 추가된 부분
+                document.getElementById('stopRecording').disabled = true;
+                
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                }
                 
                 if (audioConfig) {
                     audioConfig.close();
@@ -324,11 +385,9 @@ function stopRecording() {
     }
 }
 
-
-// Change sample
+// 샘플 변경
 function changeSample(sampleNumber) {
     const practiceText = document.querySelector('.practice-text');
-    
     if (practiceText) {
         practiceText.textContent = sampleTexts[sampleNumber] || "Sample text not found";
     }
@@ -340,7 +399,7 @@ function changeSample(sampleNumber) {
     currentSample = sampleNumber;
 }
 
-// Add analyzePronunciation function
+// 발음 분석
 function analyzePronunciation(pronunciationResult) {
     if (!pronunciationResult) {
         console.error('No pronunciation result to analyze');
@@ -361,7 +420,7 @@ function analyzePronunciation(pronunciationResult) {
     pitchAnalyzer.displayResults();
 }
 
-// Initialize mobile support
+// 모바일 지원 초기화
 function initMobileSupport() {
     const unlockAudioContext = async () => {
         if (audioContext && audioContext.state === 'suspended') {
@@ -378,12 +437,13 @@ function initMobileSupport() {
     document.addEventListener('click', unlockAudioContext);
 }
 
-// Initialize when document is loaded
+// 초기화
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
         
+        initAudioVisualizer();
         pitchAnalyzer.init();
         await waitForSDK();
         initSpeechSDK();
