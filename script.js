@@ -283,8 +283,8 @@ async function startRecording() {
     }
 
     try {
-    await initAudioContext();
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        await initAudioContext(); // audioContext 초기화
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         console.log("Microphone access granted");
 
         visualizeAudio(stream); // 오디오 시각화 시작
