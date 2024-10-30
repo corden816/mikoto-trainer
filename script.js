@@ -238,7 +238,7 @@ function playNativeSpeaker() {
 }
 
 // Stop recording
-function startRecording() {
+async function startRecording() {
     console.log("Attempting to start recording...");
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -363,9 +363,12 @@ function analyzePronunciation(pronunciationResult) {
 
 // Initialize mobile support
 function initMobileSupport() {
-    const unlockAudioContext = () => {
+    const unlockAudioContext = async () => {
         if (audioContext && audioContext.state === 'suspended') {
-            audioContext.resume();
+            await audioContext.resume();
+        }
+        if (pitchAnalyzer.audioContext && pitchAnalyzer.audioContext.state === 'suspended') {
+            await pitchAnalyzer.audioContext.resume();
         }
         document.removeEventListener('touchstart', unlockAudioContext);
         document.removeEventListener('click', unlockAudioContext);
@@ -381,25 +384,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
         
+        pitchAnalyzer.init();
+        await waitForSDK();
+        initSpeechSDK();
+        
         if (isMobile) {
             console.log('Mobile device detected:', isiOS ? 'iOS' : 'Android');
             initMobileSupport();
             
-            if (isiOS) {
-                // iOS 특별 처리
-                document.addEventListener('touchstart', async () => {
-                    if (audioContext && audioContext.state === 'suspended') {
-                        await audioContext.resume();
-                    }
-                }, false);
-            }
+            document.addEventListener('touchstart', async () => {
+                if (audioContext && audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+                if (pitchAnalyzer.audioContext && pitchAnalyzer.audioContext.state === 'suspended') {
+                    await pitchAnalyzer.audioContext.resume();
+                }
+            }, { once: true });
         }
-
-        // 들여쓰기 수정
-        pitchAnalyzer.init();
-        
-        await waitForSDK();
-        initSpeechSDK();
 
         const practiceText = document.querySelector('.practice-text');
         if (practiceText) {
