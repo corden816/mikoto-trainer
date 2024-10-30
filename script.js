@@ -308,6 +308,12 @@ async function startRecording() {
         console.log("Microphone access granted");
         
         visualizeAudio(stream);  // 오디오 시각화 시작
+        const dataArray = new Float32Array(analyser.frequencyBinCount);
+function collectUserData() {
+    analyser.getFloatTimeDomainData(dataArray);
+    pitchAnalyzer.collectPitchData(dataArray, false);
+}
+const userDataInterval = setInterval(collectUserData, 100);
 
         const referenceText = document.querySelector('.practice-text').textContent;
         if (!referenceText) {
