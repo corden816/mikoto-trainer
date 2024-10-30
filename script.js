@@ -116,6 +116,9 @@ let pitchAnalyzer = {
     },
 
     displayResults() {
+        console.log('Native Pitch Data Length:', this.nativePitchData.length);
+    console.log('User Pitch Data Length:', this.userPitchData.length);
+
         const similarity = this.calculateSimilarity();
         const feedbackElement = document.getElementById('feedback');
 
@@ -253,32 +256,38 @@ async function playNativeSpeaker() {
     const audioPath = `audio/native-speaker${currentSample}.mp3`;
 
     try {
-        const audioElement = new Audio(audioPath);
-        await audioElement.play();
+       const audioElement = new Audio(audioPath);
 
-        const source = audioContext.createMediaElementSource(audioElement);
+const source = audioContext.createMediaElementSource(audioElement);
 
-        source.connect(pitchAnalyzer.analyzer);
-        pitchAnalyzer.analyzer.connect(audioContext.destination);
+source.connect(pitchAnalyzer.analyzer);
+source.connect(visualizerAnalyser);
 
-        source.connect(visualizerAnalyser);
+pitchAnalyzer.analyzer.connect(audioContext.destination);
 
-        const bufferLength = pitchAnalyzer.analyzer.frequencyBinCount;
-        const dataArray = new Float32Array(bufferLength);
+audioElement.oncanplaythrough = () => {
+    audioElement.play();
+    // 데이터 수집 시작
+    const bufferLength = pitchAnalyzer.analyzer.frequencyBinCount;
+    const dataArray = new Float32Array(bufferLength);
 
-        const dataCollectionInterval = setInterval(() => {
-            pitchAnalyzer.analyzer.getFloatTimeDomainData(dataArray);
-            pitchAnalyzer.collectPitchData(dataArray, true);
-        }, 100);
+    const dataCollectionInterval = setInterval(() => {
+        pitchAnalyzer.analyzer.getFloatTimeDomainData(dataArray);
+        pitchAnalyzer.collectPitchData(dataArray, true);
+    }, 100);
 
-        audioElement.onended = () => {
-            clearInterval(dataCollectionInterval);
-            statusElement.textContent = 'Audio finished';
-            playButton.disabled = false;
-        };
+    audioElement.onended = () => {
+        clearInterval(dataCollectionInterval);
+        statusElement.textContent = 'Audio finished';
+        playButton.disabled = false;
+    };
 
-        statusElement.textContent = 'Playing audio...';
-        currentAudio = audioElement;
+    statusElement.textContent = 'Playing audio...';
+    currentAudio = audioElement;
+};
+
+audioElement.load(); // 오디오 로드 시작
+
 
     } catch (error) {
         console.error('Audio playback error:', error);
@@ -286,7 +295,6 @@ async function playNativeSpeaker() {
         playButton.disabled = false;
     }
 }
-
 // 녹음 시작
 async function startRecording() {
     console.log("Attempting to start recording...");
