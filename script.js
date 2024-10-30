@@ -276,11 +276,16 @@ async function playNativeSpeaker() {
         const dataArray = new Float32Array(bufferLength);
         
         source.onended = () => {
-            pitchAnalyzer.collectPitchData(dataArray, true);
-            statusElement.textContent = 'Audio finished';
-            playButton.disabled = false;
-        };
+    const dataCollectionInterval = setInterval(() => {
+    analyser.getFloatTimeDomainData(dataArray);
+    pitchAnalyzer.collectPitchData(dataArray, true);
+}, 100);
 
+source.onended = () => {
+    clearInterval(dataCollectionInterval);
+    statusElement.textContent = 'Audio finished';
+    playButton.disabled = false;
+};
         statusElement.textContent = 'Playing audio...';
         source.start(0);
         currentAudio = source;
