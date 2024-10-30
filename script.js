@@ -238,32 +238,7 @@ function playNativeSpeaker() {
 }
 
 // Stop recording
-function stopRecording() {
-    if (recognizer) {
-        recognizer.stopContinuousRecognitionAsync(
-            () => {
-                console.log('Recognition stopped');
-                document.getElementById('status').textContent = 'Recording stopped';
-                isRecording = false;
-                document.getElementById('startRecording').disabled = false;
-                
-                if (audioConfig) {
-                    audioConfig.close();
-                }
-                if (recognizer) {
-                    recognizer.close();
-                }
-            },
-            (err) => {
-                console.error('Error stopping recognition:', err);
-                document.getElementById('status').textContent = `Error stopping recognition: ${err}`;
-            }
-        );
-    }
-}
-
-// Start recording
-async function startRecording() {
+function startRecording() {
     console.log("Attempting to start recording...");
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -301,6 +276,7 @@ async function startRecording() {
 
         isRecording = true;
         document.getElementById('startRecording').disabled = true;
+        document.getElementById('stopRecording').disabled = false;  // 추가된 부분
         document.getElementById('status').textContent = 'Recording... Speak now!';
 
         recognizer.recognizing = (s, e) => {
@@ -317,12 +293,37 @@ async function startRecording() {
         };
 
         recognizer.startContinuousRecognitionAsync();
-        setTimeout(stopRecording, 30000); // Auto-stop after 30 seconds
     } catch (error) {
         console.error('Error accessing microphone:', error);
         document.getElementById('status').textContent = `Error accessing microphone: ${error.message}`;
     }
 }
+
+function stopRecording() {
+    if (recognizer) {
+        recognizer.stopContinuousRecognitionAsync(
+            () => {
+                console.log('Recognition stopped');
+                document.getElementById('status').textContent = 'Recording stopped';
+                isRecording = false;
+                document.getElementById('startRecording').disabled = false;
+                document.getElementById('stopRecording').disabled = true;  // 추가된 부분
+                
+                if (audioConfig) {
+                    audioConfig.close();
+                }
+                if (recognizer) {
+                    recognizer.close();
+                }
+            },
+            (err) => {
+                console.error('Error stopping recognition:', err);
+                document.getElementById('status').textContent = `Error stopping recognition: ${err}`;
+            }
+        );
+    }
+}
+
 
 // Change sample
 function changeSample(sampleNumber) {
@@ -414,6 +415,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         document.getElementById('playNative').addEventListener('click', playNativeSpeaker);
         document.getElementById('startRecording').addEventListener('click', startRecording);
+        document.getElementById('stopRecording').addEventListener('click', stopRecording);
     } catch (error) {
         console.error('Initialization error:', error);
     }
