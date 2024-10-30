@@ -455,6 +455,20 @@ function changeSample(sampleNumber) {
     pitchAnalyzer.reset();
 }
 
+// 모바일 지원 초기화
+function initMobileSupport() {
+    const unlockAudioContext = async () => {
+        if (audioContext && audioContext.state === 'suspended') {
+            await audioContext.resume();
+        }
+        document.removeEventListener('touchstart', unlockAudioContext);
+        document.removeEventListener('click', unlockAudioContext);
+    };
+
+    document.addEventListener('touchstart', unlockAudioContext);
+    document.addEventListener('click', unlockAudioContext);
+}
+
 // 초기화
 document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -491,4 +505,3 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Initialization error:', error);
     }
 });
-
