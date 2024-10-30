@@ -256,7 +256,7 @@ async function playNativeSpeaker() {
 
     const audioPath = `audio/native-speaker${currentSample}.mp3?v=${new Date().getTime()}`;
     
-    try {
+     try {
         const response = await fetch(audioPath);
         if (!response.ok) throw new Error('Audio file not found');
         
@@ -264,33 +264,29 @@ async function playNativeSpeaker() {
         const arrayBuffer = await blob.arrayBuffer();
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
         
-        // 오디오 소스와 분석기 설정
         const source = audioContext.createBufferSource();
         const analyser = audioContext.createAnalyser();
         source.buffer = audioBuffer;
         source.connect(analyser);
         analyser.connect(audioContext.destination);
         
-        // 피치 데이터 수집
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Float32Array(bufferLength);
         
+        const dataCollectionInterval = setInterval(() => {
+            analyser.getFloatTimeDomainData(dataArray);
+            pitchAnalyzer.collectPitchData(dataArray, true);
+        }, 100);
+
         source.onended = () => {
-// 오디오 소스와 분석기 설정 이후 부분을 이렇게 수정
-const dataCollectionInterval = setInterval(() => {
-    analyser.getFloatTimeDomainData(dataArray);
-    pitchAnalyzer.collectPitchData(dataArray, true);
-}, 100);
+            clearInterval(dataCollectionInterval);
+            statusElement.textContent = 'Audio finished';
+            playButton.disabled = false;
+        };
 
-source.onended = () => {
-    clearInterval(dataCollectionInterval);
-    statusElement.textContent = 'Audio finished';
-    playButton.disabled = false;
-};
-
-statusElement.textContent = 'Playing audio...';
-source.start(0);
-currentAudio = source;
+        statusElement.textContent = 'Playing audio...';
+        source.start(0);
+        currentAudio = source;
 
     } catch (error) {
         console.error('Audio fetch error:', error);
