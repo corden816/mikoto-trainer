@@ -120,7 +120,7 @@ let pitchAnalyzer = {
 
 // 샘플 텍스트
 const sampleTexts = {
-    1: `...`, // 샘플 텍스트 내용
+    1: `Here's everything you need to know about the new mcdonald's app. It's all the things you love about the mcdonalds at your finger tips.`, // 샘플 텍스트 내용
     2: "샘플 텍스트 2",
     3: "샘플 텍스트 3",
     4: "샘플 텍스트 4",
