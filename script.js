@@ -276,7 +276,7 @@ async function playNativeSpeaker() {
         const dataArray = new Float32Array(bufferLength);
         
         source.onended = () => {
-    const dataCollectionInterval = setInterval(() => {
+   const dataCollectionInterval = setInterval(() => {
     analyser.getFloatTimeDomainData(dataArray);
     pitchAnalyzer.collectPitchData(dataArray, true);
 }, 100);
@@ -286,9 +286,10 @@ source.onended = () => {
     statusElement.textContent = 'Audio finished';
     playButton.disabled = false;
 };
-        statusElement.textContent = 'Playing audio...';
-        source.start(0);
-        currentAudio = source;
+
+statusElement.textContent = 'Playing audio...';
+source.start(0);
+currentAudio = source;
 
     } catch (error) {
         console.error('Audio fetch error:', error);
@@ -372,6 +373,9 @@ function stopRecording() {
     if (recognizer) {
         recognizer.stopContinuousRecognitionAsync(
             () => {
+                   if (userDataInterval) {
+                    clearInterval(userDataInterval);
+                 }      
                 console.log('Recognition stopped');
                 document.getElementById('status').textContent = 'Recording stopped';
                 isRecording = false;
