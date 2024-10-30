@@ -9,6 +9,8 @@ let recognizer;
 let isRecording = false;
 let currentAudio = null;
 let currentSample = 1;
+let audioVisualizerContext;
+let animationFrameId;
 
 let pitchAnalyzer = {
     nativePitchData: [], 
