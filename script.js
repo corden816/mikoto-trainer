@@ -444,6 +444,8 @@ function initMobileSupport() {
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         initAudioVisualizer();
+        const canvas = document.getElementById('audioVisualizer');
+        console.log('Canvas element:', canvas);
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
         
