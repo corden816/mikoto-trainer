@@ -160,10 +160,7 @@ async function initAudioContext() {
     }
     analyser = audioContext.createAnalyser();
     analyser.fftSize = 2048;
-    if (audioContext.state === 'suspended') {
-        await audioContext.resume();
-    }
-    return audioContext;
+    await audioContext.resume();
 }
 
 // 오디오 시각화 초기화
