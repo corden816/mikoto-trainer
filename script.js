@@ -237,9 +237,13 @@ function visualizeAudio(stream) {
 
 // 네이티브 스피커 오디오 재생
 async function playNativeSpeaker() {
-    initAudioContext(); // 사용자 제스처 이후에 AudioContext 초기화
     const statusElement = document.getElementById('status');
     const playButton = document.getElementById('playNative');
+
+    if (!audioContext) {
+        initAudioContext(); // 사용자 제스처 이후에 AudioContext 초기화
+        initAudioVisualizer(); // AudioContext 초기화 후 오디오 시각화 초기화
+    }
 
     if (currentAudio) {
         currentAudio.pause();
@@ -306,7 +310,11 @@ async function startRecording() {
     }
 
     try {
-        initAudioContext(); // 사용자 제스처 이후에 AudioContext 초기화
+        if (!audioContext) {
+            initAudioContext(); // 사용자 제스처 이후에 AudioContext 초기화
+            initAudioVisualizer(); // AudioContext 초기화 후 오디오 시각화 초기화
+        }
+
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         console.log("Microphone access granted");
 
@@ -451,35 +459,13 @@ function changeSample(sampleNumber) {
     pitchAnalyzer.reset();
 }
 
-// 모바일 지원 초기화
-function initMobileSupport() {
-    const unlockAudioContext = async () => {
-        if (audioContext && audioContext.state === 'suspended') {
-            await audioContext.resume();
-        }
-        document.removeEventListener('touchstart', unlockAudioContext);
-        document.removeEventListener('click', unlockAudioContext);
-    };
-
-    document.addEventListener('touchstart', unlockAudioContext);
-    document.addEventListener('click', unlockAudioContext);
-}
-
 // 초기화
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         // initAudioContext(); // AudioContext 초기화를 여기서 제거합니다.
 
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-
         await waitForSDK();
         initSpeechSDK();
-
-        if (isMobile) {
-            console.log('Mobile device detected:', isiOS ? 'iOS' : 'Android');
-            initMobileSupport();
-        }
 
         const practiceText = document.querySelector('.practice-text');
         if (practiceText) {
@@ -500,4 +486,3 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Initialization error:', error);
     }
 });
-
