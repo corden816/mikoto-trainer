@@ -20,7 +20,7 @@ let pitchAnalyzer = {
     analyzer: null,
 
     init() {
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        this.audioContext = audioContext; // 기존 audioContext를 사용
         this.analyzer = this.audioContext.createAnalyser();
         this.analyzer.fftSize = 2048;
     },
@@ -117,10 +117,7 @@ let pitchAnalyzer = {
 // 샘플 텍스트
 const sampleTexts = {
     1: `Here's everything you need to know about the new McDonald's app. It's all the things you love about McDonald's at your fingertips.`,
-    2: "샘플 텍스트 2",
-    3: "샘플 텍스트 3",
-    4: "샘플 텍스트 4",
-    5: "샘플 텍스트 5"
+    // 다른 샘플 텍스트...
 };
 
 // Azure Speech SDK 초기화
@@ -167,6 +164,7 @@ function initAudioVisualizer() {
 // 오디오 시각화 함수
 function visualizeAudio(stream) {
     initAudioContext(); // audioContext 초기화
+    const canvas = document.getElementById('audioVisualizer'); // canvas 변수 선언
     const audioSource = audioContext.createMediaStreamSource(stream);
     audioSource.connect(visualizerAnalyser); // 시각화를 위한 analyser에 연결
 
@@ -213,7 +211,8 @@ async function playNativeSpeaker() {
     const playButton = document.getElementById('playNative');
 
     if (currentAudio) {
-        currentAudio.stop(0);
+        currentAudio.pause();
+        currentAudio = null;
     }
 
     statusElement.textContent = 'Loading audio...';
@@ -223,23 +222,17 @@ async function playNativeSpeaker() {
         await audioContext.resume();
     }
 
-    const audioPath = `audio/native-speaker${currentSample}.mp3?v=${new Date().getTime()}`;
+    const audioPath = `audio/native-speaker${currentSample}.mp3`;
 
     try {
-        const response = await fetch(audioPath);
-        if (!response.ok) throw new Error('Audio file not found');
+        const audioElement = new Audio(audioPath);
+        await audioElement.play();
 
-        const arrayBuffer = await response.arrayBuffer();
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        const source = audioContext.createMediaElementSource(audioElement);
 
-        const source = audioContext.createBufferSource();
-        source.buffer = audioBuffer;
-
-        // pitchAnalyzer.analyzer에 오디오 소스 연결
         source.connect(pitchAnalyzer.analyzer);
         pitchAnalyzer.analyzer.connect(audioContext.destination);
 
-        // 필요한 경우 오디오 시각화를 위해 visualizerAnalyser에도 연결
         source.connect(visualizerAnalyser);
 
         const bufferLength = pitchAnalyzer.analyzer.frequencyBinCount;
@@ -250,18 +243,17 @@ async function playNativeSpeaker() {
             pitchAnalyzer.collectPitchData(dataArray, true);
         }, 100);
 
-        source.onended = () => {
+        audioElement.onended = () => {
             clearInterval(dataCollectionInterval);
             statusElement.textContent = 'Audio finished';
             playButton.disabled = false;
         };
 
         statusElement.textContent = 'Playing audio...';
-        source.start(0);
-        currentAudio = source;
+        currentAudio = audioElement;
 
     } catch (error) {
-        console.error('Audio fetch error:', error);
+        console.error('Audio playback error:', error);
         statusElement.textContent = 'Error loading audio';
         playButton.disabled = false;
     }
@@ -284,7 +276,6 @@ async function startRecording() {
 
         visualizeAudio(stream); // 오디오 시각화 시작
 
-        // 마이크 입력을 pitchAnalyzer.analyzer와 visualizerAnalyser에 연결
         const audioSource = audioContext.createMediaStreamSource(stream);
         audioSource.connect(pitchAnalyzer.analyzer);
         audioSource.connect(visualizerAnalyser);
@@ -316,7 +307,7 @@ async function startRecording() {
             return;
         }
 
-        audioConfig = SpeechSDK.AudioConfig.fromStreamInput(stream);
+        audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
         recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
         pronunciationAssessmentConfig.applyTo(recognizer);
 
@@ -456,15 +447,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isMobile) {
             console.log('Mobile device detected:', isiOS ? 'iOS' : 'Android');
             initMobileSupport();
-
-            document.addEventListener('touchstart', async () => {
-                if (audioContext.state === 'suspended') {
-                    await audioContext.resume();
-                }
-                if (pitchAnalyzer.audioContext.state === 'suspended') {
-                    await pitchAnalyzer.audioContext.resume();
-                }
-            }, { once: true });
         }
 
         const practiceText = document.querySelector('.practice-text');
@@ -486,4 +468,3 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Initialization error:', error);
     }
 });
-
