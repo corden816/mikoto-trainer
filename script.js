@@ -257,6 +257,12 @@ async function playNativeSpeaker() {
         await audioContext.resume();
     }
 
+    const timestamp = new Date().getTime();
+    const audioPath = `audio/native-speaker${currentSample}.mp3?v=${timestamp}`;
+
+    try {
+        const audioElement = new Audio(audioPath);
+
     const audioPath = `audio/native-speaker${currentSample}.mp3`;
 
     try {
