@@ -241,7 +241,7 @@ function visualizeAudio(stream) {
 
 // 네이티브 스피커 오디오 재생
 async function playNativeSpeaker() {
-    initAudioContext(); // audioContext 초기화
+    initAudioContext();
     const statusElement = document.getElementById('status');
     const playButton = document.getElementById('playNative');
 
@@ -257,17 +257,12 @@ async function playNativeSpeaker() {
         await audioContext.resume();
     }
 
+    // 캐시 방지를 위한 타임스탬프 추가
     const timestamp = new Date().getTime();
     const audioPath = `audio/native-speaker${currentSample}.mp3?v=${timestamp}`;
 
     try {
         const audioElement = new Audio(audioPath);
-
-    const audioPath = `audio/native-speaker${currentSample}.mp3`;
-
-    try {
-        const audioElement = new Audio(audioPath);
-
         const source = audioContext.createMediaElementSource(audioElement);
 
         source.connect(pitchAnalyzer.nativeAnalyzer);
