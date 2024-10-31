@@ -257,7 +257,7 @@ async function playNativeSpeaker() {
         await audioContext.resume();
     }
 
-    const audioPath = `audio/native-speaker${currentSample}.mp3`;
+    const audioPath = `audio/voice${currentSample}.mp3`;
 
     try {
         const audioElement = new Audio(audioPath);
