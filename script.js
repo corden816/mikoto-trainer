@@ -147,7 +147,10 @@ let pitchAnalyzer = {
 // 샘플 텍스트
 const sampleTexts = {
     1: `Here's everything you need to know about the new McDonald's app. It's all the things you love about McDonald's at your fingertips.`,
-    2: `토키와다이노 레에루간 미사카 미코토 데스. 안타와 코코니 나니오 싯테루노?`
+    2: `御坂美琴ほんとに素晴らし力だね?`
+    3: `Whenever you walk along the street of small town of Sasebo, Japan, you will notice the long waiting line in front of the hamburger house. And looking around, you will find so many more hamburger places along the street. Then you might be thinking, why hamburger is so popular here? It's even a Japan.
+
+The hidden story of Sasebo hamburger is back to 1940's. During the World War 2, Sasebo was IJN's one of the biggest naval base. Several shipyards and factories for supply were located there. But after the war, the entire facilities were under controll of US navy, and Sasebo city becomes essential supply base for US navy pacific fleet. During the Korean War, more than 20,000 troops were sent to the base for operation.`
     // 다른 샘플 텍스트를 추가할 수 있습니다.
 };
 
