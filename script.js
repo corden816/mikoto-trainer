@@ -259,7 +259,7 @@ async function playNativeSpeaker() {
 
     // 캐시 방지를 위한 타임스탬프 추가
     const timestamp = new Date().getTime();
-    const audioPath = `audio/native-speaker${currentSample}-v2.mp3?v=${timestamp}`;
+    const audioPath = `audio/native-speaker${currentSample}.mp3?v=${timestamp}`;
 
     try {
         const audioElement = new Audio(audioPath);
