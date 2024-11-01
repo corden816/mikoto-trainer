@@ -516,16 +516,15 @@ function initMobileSupport() {
     document.addEventListener('click', unlockAudioContext);
 }
 
-// 초기화
+// 초기화 부분을 다음과 같이 수정
 document.addEventListener('DOMContentLoaded', async () => {
-        const loadingScreen = document.getElementById('loadingScreen');
+    const loadingScreen = document.getElementById('loadingScreen');
     
     // 3초 후에 로딩 화면 제거
     setTimeout(() => {
         loadingScreen.style.display = 'none';
     }, 3000);
 
-    try {
     try {
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
