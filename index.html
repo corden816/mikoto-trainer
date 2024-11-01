@@ -9,6 +9,10 @@
     <link rel="stylesheet" href="styles.css">
     <script src="config.js"></script> <!-- 먼저 로드 -->
     <script src="script.js"></script> <!-- 나중에 로드 -->
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
     <div id="loadingScreen" class="loading-screen">
@@ -87,6 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div id="resultContainer" class="result-container">
             <div id="pronunciationScore" class="score"></div>
             <div id="feedback" class="feedback"></div>
+            <div id="pronunciationVisualizer"></div>
             <div id="pitchScore"></div>
             <div class="chart-container">
        <div>
