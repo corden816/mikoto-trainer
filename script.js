@@ -429,8 +429,14 @@ function analyzePronunciation(pronunciationResult) {
         return;
     }
 
-    // 디버깅을 위한 로그 추가
+    // 상세 디버깅 로그
     console.log('Full pronunciation result:', pronunciationResult);
+    console.log('NBest:', pronunciationResult.NBest);
+    console.log('Properties available on pronunciationResult:', Object.keys(pronunciationResult));
+    
+    if (pronunciationResult.privResult) {
+        console.log('privResult properties:', Object.keys(pronunciationResult.privResult));
+    }
 
     // 전체 점수 표시
     const scoreElement = document.getElementById('pronunciationScore');
@@ -444,82 +450,69 @@ function analyzePronunciation(pronunciationResult) {
     const feedbackElement = document.getElementById('feedback');
     if (feedbackElement) {
         let feedbackContent = `상세 분석:\n`;
-        
-        // NBest 배열 확인
-        const nBestResults = pronunciationResult.NBest;
-        if (nBestResults && nBestResults.length > 0) {
-            // 최상의 결과 사용
-            const bestResult = nBestResults[0];
-            const words = bestResult.Words;
 
-            if (words && words.length > 0) {
-                words.forEach((word) => {
-                    feedbackContent += `\n단어 "${word.Word}":\n`;
-                    feedbackContent += `- 정확도: ${word.PronunciationAssessment?.AccuracyScore?.toFixed(1) || 'N/A'} `;
-                    feedbackContent += `- 유창성: ${word.PronunciationAssessment?.FluencyScore?.toFixed(1) || 'N/A'} `;
+        // pronunciationAssessment 직접 접근 시도
+        const assessment = pronunciationResult.pronunciationAssessment || 
+                          pronunciationResult.privPronunciationAssessment || 
+                          (pronunciationResult.privResult && pronunciationResult.privResult.pronunciationAssessment);
 
-                    // 발음 문제가 있는 경우 구체적인 피드백 제공
-                    if (word.PronunciationAssessment?.AccuracyScore < 80) {
-                        feedbackContent += `\n  * 발음 개선이 필요합니다`;
-                        
-                        // 음소 레벨 분석
-                        if (word.Phonemes && word.Phonemes.length > 0) {
-                            const lowScorePhonemes = word.Phonemes.filter(
-                                p => p.PronunciationAssessment?.AccuracyScore < 80
-                            );
-                            if (lowScorePhonemes.length > 0) {
-                                feedbackContent += `\n  * 문제가 있는 음소: `;
-                                lowScorePhonemes.forEach(phoneme => {
-                                    feedbackContent += `${phoneme.Phoneme} `;
-                                });
-                            }
+        if (assessment && assessment.Words) {
+            const words = assessment.Words;
+            words.forEach((word) => {
+                feedbackContent += `\n단어 "${word.word || word.Word}":\n`;
+                feedbackContent += `- 정확도: ${(word.accuracyScore || word.AccuracyScore || 0).toFixed(1)} `;
+                feedbackContent += `- 유창성: ${(word.fluencyScore || word.FluencyScore || 0).toFixed(1)} `;
+
+                if ((word.accuracyScore || word.AccuracyScore) < 80) {
+                    feedbackContent += `\n  * 발음 개선이 필요합니다`;
+                    
+                    const phonemes = word.phonemes || word.Phonemes;
+                    if (phonemes && phonemes.length > 0) {
+                        const lowScorePhonemes = phonemes.filter(p => 
+                            (p.accuracyScore || p.AccuracyScore) < 80
+                        );
+                        if (lowScorePhonemes.length > 0) {
+                            feedbackContent += `\n  * 문제가 있는 음소: `;
+                            lowScorePhonemes.forEach(phoneme => {
+                                feedbackContent += `${phoneme.phoneme || phoneme.Phoneme} `;
+                            });
                         }
                     }
-
-                    if (word.PronunciationAssessment?.FluencyScore < 80) {
-                        feedbackContent += `\n  * 리듬과 타이밍을 개선하세요`;
-                    }
-
-                    if (word.Duration > word.Duration * 1.5) { // Duration 비교 로직 수정 필요할 수 있음
-                        feedbackContent += `\n  * 발화가 너무 느리거나 망설임이 있습니다`;
-                    }
-                });
-
-                // 전반적인 개선 제안 추가
-                feedbackContent += '\n\n개선이 필요한 부분:\n';
-                const lowAccuracyWords = words.filter(w => w.PronunciationAssessment?.AccuracyScore < 80);
-                const lowFluencyWords = words.filter(w => w.PronunciationAssessment?.FluencyScore < 80);
-
-                if (lowAccuracyWords.length > 0) {
-                    feedbackContent += `- 다음 단어들의 발음에 집중하세요: ${lowAccuracyWords.map(w => w.Word).join(', ')}\n`;
                 }
-                if (lowFluencyWords.length > 0) {
-                    feedbackContent += `- 다음 단어들의 유창성을 개선하세요: ${lowFluencyWords.map(w => w.Word).join(', ')}\n`;
+
+                if ((word.fluencyScore || word.FluencyScore) < 80) {
+                    feedbackContent += `\n  * 리듬과 타이밍을 개선하세요`;
                 }
-            } else {
-                feedbackContent += "\n단어별 분석을 위한 데이터가 없습니다.";
-                console.log("No words data found in NBest results");
+            });
+
+            // 전반적인 개선 제안 추가
+            feedbackContent += '\n\n개선이 필요한 부분:\n';
+            const lowAccuracyWords = words.filter(w => 
+                (w.accuracyScore || w.AccuracyScore) < 80
+            );
+            const lowFluencyWords = words.filter(w => 
+                (w.fluencyScore || w.FluencyScore) < 80
+            );
+
+            if (lowAccuracyWords.length > 0) {
+                feedbackContent += `- 다음 단어들의 발음에 집중하세요: ${lowAccuracyWords.map(w => w.word || w.Word).join(', ')}\n`;
+            }
+            if (lowFluencyWords.length > 0) {
+                feedbackContent += `- 다음 단어들의 유창성을 개선하세요: ${lowFluencyWords.map(w => w.word || w.Word).join(', ')}\n`;
             }
         } else {
-            feedbackContent += "\nNBest 결과를 찾을 수 없습니다.";
-            console.log("No NBest results found");
+            feedbackContent += "\n상세 평가 데이터를 찾을 수 없습니다.";
+            console.log("Assessment data not found", {
+                hasAssessment: !!assessment,
+                assessmentKeys: assessment ? Object.keys(assessment) : null
+            });
         }
 
         feedbackElement.textContent = feedbackContent;
     }
 
-    // pitchAnalyzer 결과를 별도로 표시
-    const pitchElement = document.getElementById('pitchScore');
-    if (pitchElement) {
-        const similarity = pitchAnalyzer.calculateSimilarity();
-        pitchElement.textContent = `억양 유사도: ${similarity.toFixed(1)}%`;
-    } else {
-        // pitchScore 요소가 없다면 feedback에 추가
-        const similarity = pitchAnalyzer.calculateSimilarity();
-        feedbackElement.textContent += `\n\n억양 유사도: ${similarity.toFixed(1)}%`;
-    }
-
-    // pitchAnalyzer 데이터 리셋
+    // pitchAnalyzer 결과 표시는 그대로 유지
+    pitchAnalyzer.displayResults();
     pitchAnalyzer.reset();
 }
 
