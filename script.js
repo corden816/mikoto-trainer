@@ -429,14 +429,11 @@ function analyzePronunciation(pronunciationResult) {
         return;
     }
 
-    // 상세 디버깅 로그
-    console.log('Full pronunciation result:', pronunciationResult);
-    console.log('NBest:', pronunciationResult.NBest);
-    console.log('Properties available on pronunciationResult:', Object.keys(pronunciationResult));
-    
-    if (pronunciationResult.privResult) {
-        console.log('privResult properties:', Object.keys(pronunciationResult.privResult));
-    }
+    // 디버깅 로그
+    console.log('Detailed structure:', {
+        privPronJson: pronunciationResult.privPronJson,
+        detailResult: pronunciationResult.detailResult
+    });
 
     // 전체 점수 표시
     const scoreElement = document.getElementById('pronunciationScore');
@@ -451,61 +448,60 @@ function analyzePronunciation(pronunciationResult) {
     if (feedbackElement) {
         let feedbackContent = `상세 분석:\n`;
 
-        // pronunciationAssessment 직접 접근 시도
-        const assessment = pronunciationResult.pronunciationAssessment || 
-                          pronunciationResult.privPronunciationAssessment || 
-                          (pronunciationResult.privResult && pronunciationResult.privResult.pronunciationAssessment);
+        // privPronJson에서 단어 데이터 추출
+        const detailResult = pronunciationResult.detailResult;
+        const words = detailResult?.Words || [];
 
-        if (assessment && assessment.Words) {
-            const words = assessment.Words;
+        if (words.length > 0) {
             words.forEach((word) => {
-                feedbackContent += `\n단어 "${word.word || word.Word}":\n`;
-                feedbackContent += `- 정확도: ${(word.accuracyScore || word.AccuracyScore || 0).toFixed(1)} `;
-                feedbackContent += `- 유창성: ${(word.fluencyScore || word.FluencyScore || 0).toFixed(1)} `;
+                feedbackContent += `\n단어 "${word.Word}":\n`;
+                if (word.PronunciationAssessment) {
+                    feedbackContent += `- 정확도: ${word.PronunciationAssessment.AccuracyScore.toFixed(1)} `;
+                    feedbackContent += `- 유창성: ${word.PronunciationAssessment.FluencyScore.toFixed(1)} `;
 
-                if ((word.accuracyScore || word.AccuracyScore) < 80) {
-                    feedbackContent += `\n  * 발음 개선이 필요합니다`;
-                    
-                    const phonemes = word.phonemes || word.Phonemes;
-                    if (phonemes && phonemes.length > 0) {
-                        const lowScorePhonemes = phonemes.filter(p => 
-                            (p.accuracyScore || p.AccuracyScore) < 80
-                        );
-                        if (lowScorePhonemes.length > 0) {
-                            feedbackContent += `\n  * 문제가 있는 음소: `;
-                            lowScorePhonemes.forEach(phoneme => {
-                                feedbackContent += `${phoneme.phoneme || phoneme.Phoneme} `;
-                            });
+                    if (word.PronunciationAssessment.AccuracyScore < 80) {
+                        feedbackContent += `\n  * 발음 개선이 필요합니다`;
+                        
+                        if (word.Phonemes) {
+                            const lowScorePhonemes = word.Phonemes.filter(
+                                p => p.PronunciationAssessment && 
+                                     p.PronunciationAssessment.AccuracyScore < 80
+                            );
+                            if (lowScorePhonemes.length > 0) {
+                                feedbackContent += `\n  * 문제가 있는 음소: `;
+                                lowScorePhonemes.forEach(phoneme => {
+                                    feedbackContent += `${phoneme.Phoneme} `;
+                                });
+                            }
                         }
                     }
-                }
 
-                if ((word.fluencyScore || word.FluencyScore) < 80) {
-                    feedbackContent += `\n  * 리듬과 타이밍을 개선하세요`;
+                    if (word.PronunciationAssessment.FluencyScore < 80) {
+                        feedbackContent += `\n  * 리듬과 타이밍을 개선하세요`;
+                    }
                 }
             });
 
             // 전반적인 개선 제안 추가
             feedbackContent += '\n\n개선이 필요한 부분:\n';
-            const lowAccuracyWords = words.filter(w => 
-                (w.accuracyScore || w.AccuracyScore) < 80
+            const lowAccuracyWords = words.filter(
+                w => w.PronunciationAssessment && 
+                     w.PronunciationAssessment.AccuracyScore < 80
             );
-            const lowFluencyWords = words.filter(w => 
-                (w.fluencyScore || w.FluencyScore) < 80
+            const lowFluencyWords = words.filter(
+                w => w.PronunciationAssessment && 
+                     w.PronunciationAssessment.FluencyScore < 80
             );
 
             if (lowAccuracyWords.length > 0) {
-                feedbackContent += `- 다음 단어들의 발음에 집중하세요: ${lowAccuracyWords.map(w => w.word || w.Word).join(', ')}\n`;
+                feedbackContent += `- 다음 단어들의 발음에 집중하세요: ${lowAccuracyWords.map(w => w.Word).join(', ')}\n`;
             }
             if (lowFluencyWords.length > 0) {
-                feedbackContent += `- 다음 단어들의 유창성을 개선하세요: ${lowFluencyWords.map(w => w.word || w.Word).join(', ')}\n`;
+                feedbackContent += `- 다음 단어들의 유창성을 개선하세요: ${lowFluencyWords.map(w => w.Word).join(', ')}\n`;
             }
         } else {
+            console.log('Detail result:', detailResult);
             feedbackContent += "\n상세 평가 데이터를 찾을 수 없습니다.";
-            console.log("Assessment data not found", {
-                hasAssessment: !!assessment,
-                assessmentKeys: assessment ? Object.keys(assessment) : null
-            });
         }
 
         feedbackElement.textContent = feedbackContent;
@@ -513,21 +509,6 @@ function analyzePronunciation(pronunciationResult) {
 
     // pitchAnalyzer 결과 표시는 그대로 유지
     pitchAnalyzer.displayResults();
-    pitchAnalyzer.reset();
-}
-
-// 샘플 변경
-function changeSample(sampleNumber) {
-    const practiceText = document.querySelector('.practice-text');
-    if (practiceText) {
-        practiceText.textContent = sampleTexts[sampleNumber] || "Sample text not found";
-    }
-
-    document.querySelectorAll('.sample-btn').forEach(btn => {
-        btn.classList.toggle('active', parseInt(btn.dataset.sample) === sampleNumber);
-    });
-
-    currentSample = sampleNumber;
     pitchAnalyzer.reset();
 }
 
