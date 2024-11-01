@@ -11,6 +11,19 @@ let audioVisualizerContext;
 let animationFrameId;
 let userDataInterval;
 
+// 스타일 적용 함수 - analyzePronunciation 함수 밖으로 이동
+function applyStylesToFeedback() {
+    const feedbackElement = document.getElementById('feedback');
+    if (feedbackElement) {
+        feedbackElement.style.whiteSpace = 'pre-wrap';
+        feedbackElement.style.fontFamily = 'monospace';
+        feedbackElement.style.padding = '15px';
+        feedbackElement.style.borderRadius = '5px';
+        feedbackElement.style.backgroundColor = '#f8f9fa';
+        feedbackElement.style.border = '1px solid #dee2e6';
+    }
+}
+
 let pitchAnalyzer = {
     nativePitchData: [],
     userPitchData: [],
@@ -20,7 +33,7 @@ let pitchAnalyzer = {
     userAnalyzer: null,
 
     init() {
-        this.audioContext = audioContext; // 기존 audioContext를 사용
+        this.audioContext = audioContext;
         this.nativeAnalyzer = this.audioContext.createAnalyser();
         this.userAnalyzer = this.audioContext.createAnalyser();
         this.nativeAnalyzer.fftSize = 2048;
@@ -60,7 +73,7 @@ let pitchAnalyzer = {
         }
 
         if (peak <= 0) {
-            return 0; // 피치를 0으로 반환하여 이후 계산에서 제외
+            return 0;
         } else {
             return sampleRate / peak;
         }
@@ -72,7 +85,6 @@ let pitchAnalyzer = {
         const std = Math.sqrt(variance);
 
         if (std === 0 || isNaN(std)) {
-            // 표준편차가 0이거나 NaN이면 0으로 채워진 배열 반환
             return data.map(() => 0);
         }
 
@@ -95,7 +107,7 @@ let pitchAnalyzer = {
         const den = Math.sqrt((sum1Sq - sum1 ** 2 / length) * (sum2Sq - sum2 ** 2 / length));
 
         if (den === 0 || isNaN(den)) {
-            return 0; // 상관관계를 계산할 수 없으므로 0 반환
+            return 0;
         }
 
         return num / den;
@@ -151,7 +163,6 @@ const sampleTexts = {
     3: `Whenever you walk along the street of small town of Sasebo, Japan, you will notice the long waiting line in front of the hamburger house. And looking around, you will find so many more hamburger places along the street. Then you might be thinking, why hamburger is so popular here? It's even a Japan.
 
 The hidden story of Sasebo hamburger is back to 1940's. During the World War 2, Sasebo was IJN's one of the biggest naval base. Several shipyards and factories for supply were located there. But after the war, the entire facilities were under controll of US navy, and Sasebo city becomes essential supply base for US navy pacific fleet. During the Korean War, more than 20,000 troops were sent to the base for operation.`
-    // 다른 샘플 텍스트를 추가할 수 있습니다.
 };
 
 // Azure Speech SDK 초기화
@@ -184,8 +195,8 @@ function waitForSDK() {
 function initAudioContext() {
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        pitchAnalyzer.init(); // audioContext 생성 후 pitchAnalyzer 초기화
-        initAudioVisualizer(); // audioContext 초기화 후 오디오 시각화 초기화
+        pitchAnalyzer.init();
+        initAudioVisualizer();
     }
 }
 
@@ -200,7 +211,7 @@ function initAudioVisualizer() {
 // 오디오 시각화 함수
 function visualizeAudio(stream) {
     if (!audioContext) {
-        initAudioContext(); // audioContext 초기화
+        initAudioContext();
     }
     const canvas = document.getElementById('audioVisualizer');
     const audioSource = audioContext.createMediaStreamSource(stream);
@@ -244,7 +255,7 @@ function visualizeAudio(stream) {
 
 // 네이티브 스피커 오디오 재생
 async function playNativeSpeaker() {
-    initAudioContext(); // audioContext 초기화
+    initAudioContext();
     const statusElement = document.getElementById('status');
     const playButton = document.getElementById('playNative');
 
@@ -264,7 +275,6 @@ async function playNativeSpeaker() {
 
     try {
         const audioElement = new Audio(audioPath);
-
         const source = audioContext.createMediaElementSource(audioElement);
 
         source.connect(pitchAnalyzer.nativeAnalyzer);
@@ -274,7 +284,6 @@ async function playNativeSpeaker() {
 
         audioElement.oncanplaythrough = () => {
             audioElement.play();
-            // 데이터 수집 시작
             const bufferLength = pitchAnalyzer.nativeAnalyzer.frequencyBinCount;
             const dataArray = new Float32Array(bufferLength);
 
@@ -293,7 +302,7 @@ async function playNativeSpeaker() {
             currentAudio = audioElement;
         };
 
-        audioElement.load(); // 오디오 로드 시작
+        audioElement.load();
 
     } catch (error) {
         console.error('Audio playback error:', error);
@@ -313,11 +322,11 @@ async function startRecording() {
     }
 
     try {
-        initAudioContext(); // audioContext 초기화
+        initAudioContext();
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         console.log("Microphone access granted");
 
-        visualizeAudio(stream); // 오디오 시각화 시작
+        visualizeAudio(stream);
 
         const audioSource = audioContext.createMediaStreamSource(stream);
         audioSource.connect(pitchAnalyzer.userAnalyzer);
@@ -369,7 +378,7 @@ async function startRecording() {
                 const pronunciationResult = SpeechSDK.PronunciationAssessmentResult.fromResult(e.result);
                 console.log("Pronunciation Result:", pronunciationResult);
                 analyzePronunciation(pronunciationResult);
-            }
+                }
         };
 
         recognizer.startContinuousRecognitionAsync();
@@ -403,9 +412,6 @@ function stopRecording() {
                 if (recognizer) {
                     recognizer.close();
                 }
-
-                // pitchAnalyzer 데이터 리셋 호출 제거
-                // pitchAnalyzer.reset();
             },
             (err) => {
                 console.error('Error stopping recognition:', err);
@@ -415,7 +421,7 @@ function stopRecording() {
     }
 }
 
-// 발음 분석
+// 발음 분석 - 개선된 버전
 function analyzePronunciation(pronunciationResult) {
     if (!pronunciationResult) {
         console.error('No pronunciation result to analyze');
@@ -504,16 +510,20 @@ function analyzePronunciation(pronunciationResult) {
     // 결과 표시 후 pitchAnalyzer 데이터 리셋
     pitchAnalyzer.reset();
 }
-function applyStylesToFeedback() {
-    const feedbackElement = document.getElementById('feedback');
-    if (feedbackElement) {
-        feedbackElement.style.whiteSpace = 'pre-wrap';
-        feedbackElement.style.fontFamily = 'monospace';
-        feedbackElement.style.padding = '15px';
-        feedbackElement.style.borderRadius = '5px';
-        feedbackElement.style.backgroundColor = '#f8f9fa';
-        feedbackElement.style.border = '1px solid #dee2e6';
+
+// 샘플 변경
+function changeSample(sampleNumber) {
+    const practiceText = document.querySelector('.practice-text');
+    if (practiceText) {
+        practiceText.textContent = sampleTexts[sampleNumber] || "Sample text not found";
     }
+
+    document.querySelectorAll('.sample-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.sample) === sampleNumber);
+    });
+
+    currentSample = sampleNumber;
+    pitchAnalyzer.reset();
 }
 
 // 모바일 지원 초기화
@@ -533,9 +543,6 @@ function initMobileSupport() {
 // 초기화
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // initAudioContext(); // AudioContext 초기화를 여기서 제거합니다.
-        // initAudioVisualizer(); // 제거
-
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
@@ -562,7 +569,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('playNative').addEventListener('click', playNativeSpeaker);
         document.getElementById('startRecording').addEventListener('click', startRecording);
         document.getElementById('stopRecording').addEventListener('click', stopRecording);
-            applyStylesToFeedback();
+        
+        // 피드백 스타일 적용
+        applyStylesToFeedback();
     } catch (error) {
         console.error('Initialization error:', error);
     }
