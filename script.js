@@ -498,7 +498,7 @@ function analyzePronunciation(pronunciationResult) {
         // 인식된 텍스트 표시
         const feedbackElement = document.getElementById('feedback');
         if (feedbackElement) {
-            let feedbackText = `인식된 텍스트: ${pronunciationResult.phrase}\n\n`;
+            let feedbackText = `인식된 텍스트: ${pronunciationResult.recognizedText}\n\n`;
 
             // JSON 파싱 시도
             if (pronunciationResult.privJson) {
