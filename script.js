@@ -419,12 +419,13 @@ async function startRecording() {
             }
         };
 
-        // 녹음 시작
+        // UI 상태 업데이트
         isRecording = true;
         document.getElementById('startRecording').disabled = true;
         document.getElementById('stopRecording').disabled = false;
         document.getElementById('status').textContent = 'Recording... Speak now!';
 
+        // 녹음 시작
         await recognizer.startContinuousRecognitionAsync();
         console.log("Recognition started successfully");
 
