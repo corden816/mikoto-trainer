@@ -1,3 +1,4 @@
+
 // 전역 변수
 const React = window.React;
 const ReactDOM = window.ReactDOM;
@@ -521,7 +522,7 @@ function analyzePronunciation(pronunciationResult) {
     pitchAnalyzer.reset();
 }
 
-// PronunciationVisualizer 컴포넌트 정의 (중복 선언 제거)
+// PronunciationVisualizer 컴포넌트 정의
 const PronunciationVisualizer = ({ words }) => {
     const getScoreColor = (score) => {
         if (score >= 80) return 'bg-green-500';
