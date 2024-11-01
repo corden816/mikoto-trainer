@@ -429,6 +429,9 @@ function analyzePronunciation(pronunciationResult) {
         return;
     }
 
+    // 디버깅을 위한 로그 추가
+    console.log('Full pronunciation result:', pronunciationResult);
+
     // 전체 점수 표시
     const scoreElement = document.getElementById('pronunciationScore');
     if (scoreElement) {
@@ -440,65 +443,83 @@ function analyzePronunciation(pronunciationResult) {
 
     const feedbackElement = document.getElementById('feedback');
     if (feedbackElement) {
-        // 기존 피드백 내용을 저장
         let feedbackContent = `상세 분석:\n`;
         
-        // 단어별 평가 결과 처리
-        const words = pronunciationResult.detailedAssessment?.Words;
-        if (words && words.length > 0) {
-            words.forEach((word, index) => {
-                feedbackContent += `\n단어 "${word.word}":\n`;
-                feedbackContent += `- 정확도: ${word.accuracyScore.toFixed(1)} `;
-                feedbackContent += `- 유창성: ${word.fluencyScore.toFixed(1)} `;
+        // NBest 배열 확인
+        const nBestResults = pronunciationResult.NBest;
+        if (nBestResults && nBestResults.length > 0) {
+            // 최상의 결과 사용
+            const bestResult = nBestResults[0];
+            const words = bestResult.Words;
 
-                // 발음 문제가 있는 경우 구체적인 피드백 제공
-                if (word.accuracyScore < 80) {
-                    feedbackContent += `\n  * 발음 개선이 필요합니다`;
-                    
-                    // 음소 레벨 분석이 있는 경우
-                    if (word.phonemes && word.phonemes.length > 0) {
-                        feedbackContent += `\n  * 문제가 있는 음소: `;
-                        word.phonemes.forEach(phoneme => {
-                            if (phoneme.accuracyScore < 80) {
-                                feedbackContent += `${phoneme.phoneme} `;
+            if (words && words.length > 0) {
+                words.forEach((word) => {
+                    feedbackContent += `\n단어 "${word.Word}":\n`;
+                    feedbackContent += `- 정확도: ${word.PronunciationAssessment?.AccuracyScore?.toFixed(1) || 'N/A'} `;
+                    feedbackContent += `- 유창성: ${word.PronunciationAssessment?.FluencyScore?.toFixed(1) || 'N/A'} `;
+
+                    // 발음 문제가 있는 경우 구체적인 피드백 제공
+                    if (word.PronunciationAssessment?.AccuracyScore < 80) {
+                        feedbackContent += `\n  * 발음 개선이 필요합니다`;
+                        
+                        // 음소 레벨 분석
+                        if (word.Phonemes && word.Phonemes.length > 0) {
+                            const lowScorePhonemes = word.Phonemes.filter(
+                                p => p.PronunciationAssessment?.AccuracyScore < 80
+                            );
+                            if (lowScorePhonemes.length > 0) {
+                                feedbackContent += `\n  * 문제가 있는 음소: `;
+                                lowScorePhonemes.forEach(phoneme => {
+                                    feedbackContent += `${phoneme.Phoneme} `;
+                                });
                             }
-                        });
+                        }
                     }
+
+                    if (word.PronunciationAssessment?.FluencyScore < 80) {
+                        feedbackContent += `\n  * 리듬과 타이밍을 개선하세요`;
+                    }
+
+                    if (word.Duration > word.Duration * 1.5) { // Duration 비교 로직 수정 필요할 수 있음
+                        feedbackContent += `\n  * 발화가 너무 느리거나 망설임이 있습니다`;
+                    }
+                });
+
+                // 전반적인 개선 제안 추가
+                feedbackContent += '\n\n개선이 필요한 부분:\n';
+                const lowAccuracyWords = words.filter(w => w.PronunciationAssessment?.AccuracyScore < 80);
+                const lowFluencyWords = words.filter(w => w.PronunciationAssessment?.FluencyScore < 80);
+
+                if (lowAccuracyWords.length > 0) {
+                    feedbackContent += `- 다음 단어들의 발음에 집중하세요: ${lowAccuracyWords.map(w => w.Word).join(', ')}\n`;
                 }
-
-                if (word.fluencyScore < 80) {
-                    feedbackContent += `\n  * 리듬과 타이밍을 개선하세요`;
+                if (lowFluencyWords.length > 0) {
+                    feedbackContent += `- 다음 단어들의 유창성을 개선하세요: ${lowFluencyWords.map(w => w.Word).join(', ')}\n`;
                 }
-
-                if (word.duration > word.expectedDuration * 1.5) {
-                    feedbackContent += `\n  * 발화가 너무 느리거나 망설임이 있습니다`;
-                }
-            });
-
-            // 전반적인 개선 제안 추가
-            feedbackContent += '\n\n개선이 필요한 부분:\n';
-            const lowAccuracyWords = words.filter(w => w.accuracyScore < 80);
-            const lowFluencyWords = words.filter(w => w.fluencyScore < 80);
-
-            if (lowAccuracyWords.length > 0) {
-                feedbackContent += `- 다음 단어들의 발음에 집중하세요: ${lowAccuracyWords.map(w => w.word).join(', ')}\n`;
-            }
-            if (lowFluencyWords.length > 0) {
-                feedbackContent += `- 다음 단어들의 유창성을 개선하세요: ${lowFluencyWords.map(w => w.word).join(', ')}\n`;
+            } else {
+                feedbackContent += "\n단어별 분석을 위한 데이터가 없습니다.";
+                console.log("No words data found in NBest results");
             }
         } else {
-            feedbackContent += "\n단어별 분석 데이터를 가져올 수 없습니다.";
-            console.log("Detailed assessment data:", pronunciationResult.detailedAssessment);
+            feedbackContent += "\nNBest 결과를 찾을 수 없습니다.";
+            console.log("No NBest results found");
         }
 
-        // 기존 피치 분석 결과를 보존하기 위해 현재 내용에 추가
         feedbackElement.textContent = feedbackContent;
     }
 
-    // pitchAnalyzer 결과 표시
-    pitchAnalyzer.displayResults();
+    // pitchAnalyzer 결과를 별도로 표시
+    const pitchElement = document.getElementById('pitchScore');
+    if (pitchElement) {
+        const similarity = pitchAnalyzer.calculateSimilarity();
+        pitchElement.textContent = `억양 유사도: ${similarity.toFixed(1)}%`;
+    } else {
+        // pitchScore 요소가 없다면 feedback에 추가
+        const similarity = pitchAnalyzer.calculateSimilarity();
+        feedbackElement.textContent += `\n\n억양 유사도: ${similarity.toFixed(1)}%`;
+    }
 
-    // 결과 표시 후 pitchAnalyzer 데이터 리셋
+    // pitchAnalyzer 데이터 리셋
     pitchAnalyzer.reset();
 }
 
