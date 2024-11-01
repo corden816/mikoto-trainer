@@ -4,36 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>M I K O T O</title>
+
+    <!-- React 관련 스크립트 -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- React 관련 스크립트 -->
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    
-    <!-- shadcn/ui 관련 스크립트 -->
-    <script src="https://cdn.jsdelivr.net/npm/@radix-ui/react-alert@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@radix-ui/react-card@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@radix-ui/react-progress@latest"></script>
-
-    <!-- head 태그 내부에 추가 -->
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="components/PronunciationVisualizer.js"></script>
-    
-    <!-- index.html의 head 부분에 추가 -->
-<script src="components/PronunciationVisualizer.js"></script>
-    
-    <!-- shadcn/ui 스타일시트 -->
-    <link href="https://cdn.jsdelivr.net/npm/@radix-ui/themes@latest/styles.css" rel="stylesheet" />
     
     <!-- Azure Speech SDK -->
     <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
     
     <!-- 설정 파일 -->
     <script src="config.js"></script>
-    
+
+    <!-- PronunciationVisualizer 컴포넌트 -->
+    <script src="components/PronunciationVisualizer.js"></script>
+
     <style>
         .loading-screen {
             position: fixed;
