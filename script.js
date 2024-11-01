@@ -1,7 +1,6 @@
 // 전역 변수
 const React = window.React;
 const ReactDOM = window.ReactDOM;
-// React, ReactDOM 선언 후에 추가
 let audioContext;
 let visualizerAnalyser;
 let speechConfig;
@@ -14,7 +13,7 @@ let audioVisualizerContext;
 let animationFrameId;
 let userDataInterval;
 
-// 스타일 적용 함수 - analyzePronunciation 함수 밖으로 이동
+// 스타일 적용 함수
 function applyStylesToFeedback() {
     const feedbackElement = document.getElementById('feedback');
     if (feedbackElement) {
@@ -174,11 +173,9 @@ function initSpeechSDK() {
         console.log("Speech SDK is available");
         try {
             speechConfig = SpeechSDK.SpeechConfig.fromSubscription(window.config.apiKey, window.config.region);
-            
-            // 중요: 이 설정들이 제대로 적용되어야 합니다
             speechConfig.speechRecognitionLanguage = "en-US";
             speechConfig.outputFormat = SpeechSDK.OutputFormat.Detailed;
-            
+
             console.log('Speech SDK initialized successfully with settings:', {
                 language: speechConfig.speechRecognitionLanguage,
                 outputFormat: speechConfig.outputFormat
@@ -326,7 +323,6 @@ async function playNativeSpeaker() {
 }
 
 // 녹음 시작
-// 녹음 시작
 async function startRecording() {
     console.log("Attempting to start recording...");
 
@@ -375,10 +371,11 @@ async function startRecording() {
         const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
             referenceText,
             SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
-            SpeechSDK.PronunciationAssessmentGranularity.Word,
+            SpeechSDK.PronunciationAssessmentGranularity.Phoneme,
             true // Enable miscue calculation
         );
 
+        pronunciationAssessmentConfig.enableMiscue = true;
         pronunciationAssessmentConfig.enableProsodyAssessment = true;
 
         // 오디오 설정 및 recognizer 생성
@@ -435,9 +432,6 @@ async function startRecording() {
     }
 }
 
-
-
-
 // 녹음 중지
 function stopRecording() {
     if (recognizer) {
@@ -471,9 +465,7 @@ function stopRecording() {
     }
 }
 
-// 발음 분석 - 개선된 버전
-// 발음 분석
-// 발음 분석 함수 수정
+// 발음 분석 함수
 function analyzePronunciation(pronunciationResult) {
     console.log("Starting pronunciation analysis with:", pronunciationResult);
 
@@ -504,49 +496,15 @@ function analyzePronunciation(pronunciationResult) {
 
                 if (assessmentJson.NBest && Array.isArray(assessmentJson.NBest)) {
                     const nBest = assessmentJson.NBest[0];
-                    if (nBest.Words && Array.isArray(nBest.Words)) {
-                        feedbackText += "단어별 분석:\n";
-                        nBest.Words.forEach(word => {
-                            feedbackText += `\n${word.Word}:\n`;
-                            if (word.PronunciationAssessment) {
-                                const accuracy = word.PronunciationAssessment.AccuracyScore;
-                                feedbackText += `  정확도: ${accuracy}%\n`;
+                    const words = nBest.Words || [];
 
-                                if (accuracy < 80 && word.Phonemes) {
-                                    feedbackText += "  음소 분석:\n";
-                                    word.Phonemes.forEach(phoneme => {
-                                        if (phoneme.PronunciationAssessment &&
-                                            phoneme.PronunciationAssessment.AccuracyScore < 80) {
-                                            feedbackText += `    ${phoneme.Phoneme}: ${phoneme.PronunciationAssessment.AccuracyScore}% - 개선 필요\n`;
-                                        }
-                                    });
-                                }
-                            }
-                        });
-
-                        // React 컴포넌트 렌더링
-                        // 단어별 유창성 점수는 표시하지 않도록 수정
-                        const root = document.getElementById('pronunciationVisualizer');
-                        if (root) {
-                            if (!root._reactRootContainer) {
-                                ReactDOM.createRoot(root).render(
-                                    React.createElement(window.PronunciationVisualizer, {
-                                        assessmentData: {
-                                            pronunciationScore: pronunciationResult.pronunciationScore,
-                                            accuracyScore: pronunciationResult.accuracyScore,
-                                            fluencyScore: pronunciationResult.fluencyScore,
-                                            completenessScore: pronunciationResult.completenessScore,
-                                            words: nBest.Words.map(word => ({
-                                                word: word.Word,
-                                                accuracyScore: word.PronunciationAssessment?.AccuracyScore || 0,
-                                                // 단어별 유창성 점수는 제거
-                                                phonemes: word.Phonemes || []
-                                            }))
-                                        }
-                                    })
-                                );
-                            }
-                        }
+                    // React 컴포넌트 렌더링
+                    const root = document.getElementById('pronunciationVisualizer');
+                    if (root) {
+                        ReactDOM.render(
+                            React.createElement(PronunciationVisualizer, { words }),
+                            root
+                        );
                     }
                 }
             }
@@ -563,7 +521,73 @@ function analyzePronunciation(pronunciationResult) {
     pitchAnalyzer.reset();
 }
 
+// PronunciationVisualizer 컴포넌트 정의
+const PronunciationVisualizer = ({ words }) => {
+    const getScoreColor = (score) => {
+        if (score >= 80) return 'bg-green-500';
+        if (score >= 60) return 'bg-yellow-500';
+        return 'bg-red-500';
+    };
 
+    return React.createElement('div', { className: 'mt-8' },
+        React.createElement('h2', { className: 'text-xl font-bold mb-4' }, '단어별 분석'),
+        React.createElement('div', { className: 'space-y-4' },
+            words.map((word, index) =>
+                React.createElement('div', {
+                    key: index,
+                    className: 'bg-gray-50 p-4 rounded-lg'
+                },
+                    // 단어와 정확도 점수
+                    React.createElement('div', { className: 'flex justify-between items-center mb-2' },
+                        React.createElement('span', { className: 'text-lg font-semibold' },
+                            word.Word
+                        ),
+                        React.createElement('span', { className: 'text-sm font-medium text-gray-600' },
+                            `정확도: ${word.PronunciationAssessment?.AccuracyScore.toFixed(1) || 'N/A'}`
+                        )
+                    ),
+                    // Accuracy 그래프
+                    React.createElement('div', { className: 'flex items-center mb-2' },
+                        React.createElement('span', { className: 'w-24 text-sm text-gray-600' }, 'Accuracy'),
+                        React.createElement('div', { className: 'flex-1 mx-2' },
+                            React.createElement('div', { className: 'w-full bg-gray-200 rounded-full h-2' },
+                                React.createElement('div', {
+                                    className: `${getScoreColor(word.PronunciationAssessment?.AccuracyScore)} rounded-full h-2`,
+                                    style: { width: `${word.PronunciationAssessment?.AccuracyScore}%` }
+                                })
+                            )
+                        ),
+                        React.createElement('span', { className: 'w-12 text-sm text-gray-600 text-right' },
+                            `${word.PronunciationAssessment?.AccuracyScore.toFixed(1)}`
+                        )
+                    ),
+                    // 발음 개선 피드백
+                    word.PronunciationAssessment?.AccuracyScore < 80 &&
+                    React.createElement('div', {
+                        className: 'mt-2 p-2 bg-yellow-50 rounded border border-yellow-200'
+                    },
+                        React.createElement('p', { className: 'text-sm text-yellow-700' },
+                            React.createElement('span', { className: 'font-medium' }, '발음 개선 필요 음소: '),
+                            (() => {
+                                const phonemes = word.Phonemes || [];
+                                const problemPhonemes = phonemes.filter(p =>
+                                    p.PronunciationAssessment?.AccuracyScore < 80
+                                );
+
+                                if (problemPhonemes.length > 0) {
+                                    return `'${problemPhonemes.map(p => p.Phoneme).join(", ")}'`;
+                                }
+
+                                // 기본 피드백
+                                return '전반적인 발음 개선이 필요합니다';
+                            })()
+                        )
+                    )
+                )
+            )
+        )
+    );
+};
 
 function changeSample(sampleNumber) {
     const practiceText = document.querySelector('.practice-text');
@@ -593,10 +617,10 @@ function initMobileSupport() {
     document.addEventListener('click', unlockAudioContext);
 }
 
-// 초기화 부분을 다음과 같이 수정
+// 초기화
 document.addEventListener('DOMContentLoaded', async () => {
     const loadingScreen = document.getElementById('loadingScreen');
-    
+
     // 3초 후에 로딩 화면 제거
     setTimeout(() => {
         loadingScreen.style.display = 'none';
@@ -629,7 +653,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('playNative').addEventListener('click', playNativeSpeaker);
         document.getElementById('startRecording').addEventListener('click', startRecording);
         document.getElementById('stopRecording').addEventListener('click', stopRecording);
-        
+
         // 피드백 스타일 적용
         applyStylesToFeedback();
     } catch (error) {
