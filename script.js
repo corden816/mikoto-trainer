@@ -461,27 +461,28 @@ function analyzePronunciation(pronunciationResult) {
     const assessmentJson = JSON.parse(pronunciationResult.privJson);
     
     // React 컴포넌트 렌더링
-    const root = document.getElementById('pronunciationVisualizer');
-    if (root) {
-        if (!root._reactRootContainer) {
-            ReactDOM.createRoot(root).render(
-                React.createElement(PronunciationVisualizer, {
-                    assessmentData: {
-                        pronunciationScore: pronunciationResult.pronunciationScore,
-                        accuracyScore: pronunciationResult.accuracyScore,
-                        fluencyScore: pronunciationResult.fluencyScore,
-                        completenessScore: pronunciationResult.completenessScore,
-                        words: assessmentJson.NBest[0].Words.map(word => ({
-                            word: word.Word,
-                            accuracyScore: word.PronunciationAssessment?.AccuracyScore || 0,
-                            fluencyScore: word.PronunciationAssessment?.FluencyScore || 0,
-                            phonemes: word.Phonemes || []
-                        }))
-                    }
-                })
-            );
-        }
+    // script.js의 analyzePronunciation 함수 내부
+const root = document.getElementById('pronunciationVisualizer');
+if (root) {
+    if (!root._reactRootContainer) {
+        ReactDOM.createRoot(root).render(
+            React.createElement(window.PronunciationVisualizer, {
+                assessmentData: {
+                    pronunciationScore: pronunciationResult.pronunciationScore,
+                    accuracyScore: pronunciationResult.accuracyScore,
+                    fluencyScore: pronunciationResult.fluencyScore,
+                    completenessScore: pronunciationResult.completenessScore,
+                    words: assessmentJson.NBest[0].Words.map(word => ({
+                        word: word.Word,
+                        accuracyScore: word.PronunciationAssessment?.AccuracyScore || 0,
+                        fluencyScore: word.PronunciationAssessment?.FluencyScore || 0,
+                        phonemes: word.Phonemes || []
+                    }))
+                }
+            })
+        );
     }
+}
 
     // pitchAnalyzer 결과 표시
     pitchAnalyzer.displayResults();
