@@ -567,7 +567,6 @@ function analyzePronunciation(pronunciationResult) {
 nBest.Words.map((word, index) => {
     console.log('Word data:', word); // 단어 데이터 로깅
     console.log('Phonemes:', word.Phonemes); // 음소 데이터 로깅})
-                                    )
                                 ])
                             ]);
                         };
