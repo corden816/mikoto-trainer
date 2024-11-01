@@ -438,16 +438,25 @@ function stopRecording() {
 // 발음 분석 - 개선된 버전
 // 발음 분석
 function analyzePronunciation(pronunciationResult) {
-    console.log('Word details:', words.map(word => ({
-    word: word.Word,
-    phonemes: word.Phonemes,
-    assessment: word.PronunciationAssessment,
-    duration: word.Duration
-})));
     if (!pronunciationResult) {
         console.error('No pronunciation result to analyze');
         return;
     }
+
+    // assessmentData와 words를 먼저 정의
+    const assessmentData = pronunciationResult.privPronJson;
+    const words = assessmentData.Words || 
+                 assessmentData.words || 
+                 (assessmentData.NBest && assessmentData.NBest[0]?.Words) ||
+                 [];
+
+    // 그 다음에 디버깅 로그 추가
+    console.log('Word details:', words.map(word => ({
+        word: word.Word,
+        phonemes: word.Phonemes,
+        assessment: word.PronunciationAssessment,
+        duration: word.Duration
+    })));
 
     // 기본 점수 표시 유지
     const scoreElement = document.getElementById('pronunciationScore');
@@ -473,6 +482,9 @@ function analyzePronunciation(pronunciationResult) {
                 if (score >= 60) return 'bg-yellow-500';
                 return 'bg-red-500';
             };
+                        )
+        )
+    }
 
             return React.createElement('div', { className: 'w-full max-w-4xl mx-auto p-6 bg-white rounded-lg' },
                 // 전체 점수 섹션
