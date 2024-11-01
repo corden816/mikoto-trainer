@@ -421,20 +421,7 @@ function analyzePronunciation(pronunciationResult) {
         console.error('No pronunciation result to analyze');
         return;
     }
-function applyStylesToFeedback() {
-    const feedbackElement = document.getElementById('feedback');
-    if (feedbackElement) {
-        feedbackElement.style.whiteSpace = 'pre-wrap';
-        feedbackElement.style.fontFamily = 'monospace';
-        feedbackElement.style.padding = '15px';
-        feedbackElement.style.borderRadius = '5px';
-        feedbackElement.style.backgroundColor = '#f8f9fa';
-        feedbackElement.style.border = '1px solid #dee2e6';
-    }
-}
-    function changeSample(sampleNumber) {
-    // ... changeSample 함수 내용 ...
-}
+
     // 전체 점수 표시
     const scoreElement = document.getElementById('pronunciationScore');
     if (scoreElement) {
@@ -516,6 +503,17 @@ function applyStylesToFeedback() {
 
     // 결과 표시 후 pitchAnalyzer 데이터 리셋
     pitchAnalyzer.reset();
+}
+function applyStylesToFeedback() {
+    const feedbackElement = document.getElementById('feedback');
+    if (feedbackElement) {
+        feedbackElement.style.whiteSpace = 'pre-wrap';
+        feedbackElement.style.fontFamily = 'monospace';
+        feedbackElement.style.padding = '15px';
+        feedbackElement.style.borderRadius = '5px';
+        feedbackElement.style.backgroundColor = '#f8f9fa';
+        feedbackElement.style.border = '1px solid #dee2e6';
+    }
 }
 
 // 모바일 지원 초기화
