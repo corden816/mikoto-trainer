@@ -422,6 +422,7 @@ function stopRecording() {
 }
 
 // 발음 분석 - 개선된 버전
+// 발음 분석
 function analyzePronunciation(pronunciationResult) {
     if (!pronunciationResult) {
         console.error('No pronunciation result to analyze');
@@ -431,45 +432,32 @@ function analyzePronunciation(pronunciationResult) {
     // 전체 점수 표시
     const scoreElement = document.getElementById('pronunciationScore');
     if (scoreElement) {
-        scoreElement.textContent = `Overall Pronunciation Score: ${pronunciationResult.pronunciationScore.toFixed(1)}`;
+        scoreElement.textContent = `발음 점수: ${pronunciationResult.pronunciationScore.toFixed(1)}
+정확성: ${pronunciationResult.accuracyScore.toFixed(1)}
+유창성: ${pronunciationResult.fluencyScore.toFixed(1)}
+완결성: ${pronunciationResult.completenessScore.toFixed(1)}`;
     }
 
     const feedbackElement = document.getElementById('feedback');
     if (feedbackElement) {
-        // 기본 점수 정보
-        let feedbackContent = `Overall Scores:\n`;
-        feedbackContent += `Accuracy: ${pronunciationResult.accuracyScore.toFixed(1)}\n`;
-        feedbackContent += `Fluency: ${pronunciationResult.fluencyScore.toFixed(1)}\n`;
-        feedbackContent += `Completeness: ${pronunciationResult.completenessScore.toFixed(1)}\n\n`;
-
-        // 단어별 상세 분석 추가
-        feedbackContent += `Detailed Word Analysis:\n`;
+        // 기존 피드백 내용을 저장
+        let feedbackContent = `상세 분석:\n`;
         
         // 단어별 평가 결과 처리
-        const words = pronunciationResult.detailedAssessment.Words;
+        const words = pronunciationResult.detailedAssessment?.Words;
         if (words && words.length > 0) {
             words.forEach((word, index) => {
-                // 각 단어의 점수를 색상으로 표시하기 위한 함수
-                const getScoreColor = (score) => {
-                    if (score >= 80) return '#28a745';  // 녹색
-                    if (score >= 60) return '#ffc107';  // 노란색
-                    return '#dc3545';  // 빨간색
-                };
-
-                const accuracyColor = getScoreColor(word.accuracyScore);
-                const fluencyColor = getScoreColor(word.fluencyScore);
-                
-                feedbackContent += `\nWord "${word.word}":\n`;
-                feedbackContent += `- Accuracy: ${word.accuracyScore.toFixed(1)} `;
-                feedbackContent += `- Fluency: ${word.fluencyScore.toFixed(1)} `;
+                feedbackContent += `\n단어 "${word.word}":\n`;
+                feedbackContent += `- 정확도: ${word.accuracyScore.toFixed(1)} `;
+                feedbackContent += `- 유창성: ${word.fluencyScore.toFixed(1)} `;
 
                 // 발음 문제가 있는 경우 구체적인 피드백 제공
                 if (word.accuracyScore < 80) {
-                    feedbackContent += `\n  * Pronunciation needs improvement`;
+                    feedbackContent += `\n  * 발음 개선이 필요합니다`;
                     
                     // 음소 레벨 분석이 있는 경우
                     if (word.phonemes && word.phonemes.length > 0) {
-                        feedbackContent += `\n  * Problem phonemes: `;
+                        feedbackContent += `\n  * 문제가 있는 음소: `;
                         word.phonemes.forEach(phoneme => {
                             if (phoneme.accuracyScore < 80) {
                                 feedbackContent += `${phoneme.phoneme} `;
@@ -479,28 +467,31 @@ function analyzePronunciation(pronunciationResult) {
                 }
 
                 if (word.fluencyScore < 80) {
-                    feedbackContent += `\n  * Work on rhythm and timing`;
+                    feedbackContent += `\n  * 리듬과 타이밍을 개선하세요`;
                 }
 
-                // 단어 사이의 부적절한 휴지나 더듬거림 표시
                 if (word.duration > word.expectedDuration * 1.5) {
-                    feedbackContent += `\n  * Speech is too slow or hesitant`;
+                    feedbackContent += `\n  * 발화가 너무 느리거나 망설임이 있습니다`;
                 }
             });
 
             // 전반적인 개선 제안 추가
-            feedbackContent += '\n\nSuggestions for Improvement:\n';
+            feedbackContent += '\n\n개선이 필요한 부분:\n';
             const lowAccuracyWords = words.filter(w => w.accuracyScore < 80);
             const lowFluencyWords = words.filter(w => w.fluencyScore < 80);
 
             if (lowAccuracyWords.length > 0) {
-                feedbackContent += `- Focus on pronouncing: ${lowAccuracyWords.map(w => w.word).join(', ')}\n`;
+                feedbackContent += `- 다음 단어들의 발음에 집중하세요: ${lowAccuracyWords.map(w => w.word).join(', ')}\n`;
             }
             if (lowFluencyWords.length > 0) {
-                feedbackContent += `- Practice speaking more smoothly: ${lowFluencyWords.map(w => w.word).join(', ')}\n`;
+                feedbackContent += `- 다음 단어들의 유창성을 개선하세요: ${lowFluencyWords.map(w => w.word).join(', ')}\n`;
             }
+        } else {
+            feedbackContent += "\n단어별 분석 데이터를 가져올 수 없습니다.";
+            console.log("Detailed assessment data:", pronunciationResult.detailedAssessment);
         }
 
+        // 기존 피치 분석 결과를 보존하기 위해 현재 내용에 추가
         feedbackElement.textContent = feedbackContent;
     }
 
