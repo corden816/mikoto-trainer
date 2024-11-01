@@ -390,26 +390,31 @@ async function startRecording() {
         pronunciationAssessmentConfig.applyTo(recognizer);
 
         // 이벤트 핸들러
-        recognizer.recognized = (s, e) => {
-            if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
-                console.log("Recognition result:", e.result);
-                try {
-                    const pronunciationResult = SpeechSDK.PronunciationAssessmentResult.fromResult(e.result);
-                    console.log("Pronunciation assessment result:", pronunciationResult);
+        // `startRecording` 함수 내에서 수정
+recognizer.recognized = (s, e) => {
+    if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
+        console.log("Recognition result:", e.result);
+        try {
+            const pronunciationResult = SpeechSDK.PronunciationAssessmentResult.fromResult(e.result);
+            console.log("Pronunciation assessment result:", pronunciationResult);
 
-                    // JSON 결과 가져오기
-                    const jsonResult = e.result.properties.getProperty(SpeechSDK.PropertyId.SpeechServiceResponse_JsonResult);
+            // 인식된 텍스트를 `pronunciationResult` 객체에 추가
+            pronunciationResult.recognizedText = e.result.text;
 
-                    pronunciationResult.privJson = jsonResult;
+            // JSON 결과 가져오기
+            const jsonResult = e.result.properties.getProperty(SpeechSDK.PropertyId.SpeechServiceResponse_JsonResult);
 
-                    analyzePronunciation(pronunciationResult);
-                } catch (error) {
-                    console.error("Error processing recognition result:", error);
-                }
-            } else if (e.result.reason === SpeechSDK.ResultReason.NoMatch) {
-                console.log("No speech could be recognized.");
-            }
-        };
+            pronunciationResult.privJson = jsonResult;
+
+            analyzePronunciation(pronunciationResult);
+        } catch (error) {
+            console.error("Error processing recognition result:", error);
+        }
+    } else if (e.result.reason === SpeechSDK.ResultReason.NoMatch) {
+        console.log("No speech could be recognized.");
+    }
+};
+
 
         // UI 상태 업데이트
         isRecording = true;
