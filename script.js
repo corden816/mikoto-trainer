@@ -337,17 +337,24 @@ async function startRecording() {
     }
 
     try {
-        // Speech SDK 설정 확인
-        if (!speechConfig) {
-            console.error("Speech SDK not initialized");
-            return;
-        }
+        // AudioContext 초기화
+        initAudioContext();
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log("Microphone access granted");
 
-        // 설정 로깅
-        console.log("Current speech config:", {
-            recognitionLanguage: speechConfig.speechRecognitionLanguage,
-            outputFormat: speechConfig.outputFormat
-        });
+        // 오디오 시각화 및 pitch 분석 설정
+        visualizeAudio(stream);
+        const audioSource = audioContext.createMediaStreamSource(stream);
+        audioSource.connect(pitchAnalyzer.userAnalyzer);
+        audioSource.connect(visualizerAnalyser);
+
+        // Pitch 데이터 수집 설정
+        const dataArray = new Float32Array(pitchAnalyzer.userAnalyzer.frequencyBinCount);
+        function collectUserData() {
+            pitchAnalyzer.userAnalyzer.getFloatTimeDomainData(dataArray);
+            pitchAnalyzer.collectPitchData(dataArray, false);
+        }
+        userDataInterval = setInterval(collectUserData, 100);
 
         // 발음 평가 설정
         const referenceText = document.querySelector('.practice-text').textContent;
@@ -356,7 +363,6 @@ async function startRecording() {
             return;
         }
 
-        // 발음 평가 설정 생성
         const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
             referenceText,
             SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
@@ -367,37 +373,30 @@ async function startRecording() {
         pronunciationAssessmentConfig.enableProsodyAssessment = true;
         pronunciationAssessmentConfig.enableDetailedResultOutput = true;
 
-        // 오디오 설정
+        // Speech SDK 설정
+        if (!speechConfig) {
+            console.error("Speech SDK not initialized");
+            return;
+        }
+        speechConfig.outputFormat = SpeechSDK.OutputFormat.Detailed;
+
+        // 오디오 설정 및 recognizer 생성
         audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
-        
-        // 새로운 recognizer 생성
         recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
-        
-        // 발음 평가 구성 적용
         pronunciationAssessmentConfig.applyTo(recognizer);
 
-        // 이벤트 핸들러 수정
+        // 이벤트 핸들러
         recognizer.recognized = (s, e) => {
-            console.log("Recognition event fired", e);
-            
             if (e.result && e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
                 console.log("Recognition successful:", e.result);
                 
                 try {
-                    // 결과 처리
                     const properties = e.result.properties;
                     const pronScore = parseFloat(properties.getProperty("PronunciationAssessment_PronScore"));
                     const accuracyScore = parseFloat(properties.getProperty("PronunciationAssessment_AccuracyScore"));
                     const fluencyScore = parseFloat(properties.getProperty("PronunciationAssessment_FluencyScore"));
                     const completenessScore = parseFloat(properties.getProperty("PronunciationAssessment_CompletenessScore"));
                     
-                    console.log("Pronunciation scores:", {
-                        pronScore,
-                        accuracyScore,
-                        fluencyScore,
-                        completenessScore
-                    });
-
                     const pronunciationResult = {
                         text: e.result.text,
                         pronunciationScore: pronScore || 0,
@@ -411,25 +410,21 @@ async function startRecording() {
                 } catch (error) {
                     console.error("Error processing recognition result:", error);
                 }
-            } else {
-                console.log("Recognition not successful:", e.result?.reason);
             }
         };
 
-        recognizer.recognizing = (s, e) => {
-            console.log("Recognition in progress:", e);
-        };
+        // 녹음 시작
+        isRecording = true;
+        document.getElementById('startRecording').disabled = true;
+        document.getElementById('stopRecording').disabled = false;
+        document.getElementById('status').textContent = 'Recording... Speak now!';
 
-        recognizer.canceled = (s, e) => {
-            console.log("Recognition canceled:", e);
-        };
-
-        // 나머지 초기화 코드...
         await recognizer.startContinuousRecognitionAsync();
         console.log("Recognition started successfully");
 
     } catch (error) {
         console.error('Error in startRecording:', error);
+        document.getElementById('status').textContent = `Error accessing microphone: ${error.message}`;
     }
 }
 
