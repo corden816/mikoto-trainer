@@ -348,11 +348,11 @@ async function startRecording() {
         }
 
         const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
-            referenceText,
-            SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
-            SpeechSDK.PronunciationAssessmentGranularity.Word,
-            true
-        );
+    referenceText,
+    SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
+    SpeechSDK.PronunciationAssessmentGranularity.Word, // Word 레벨 분석 활성화
+    true // 상세 평가 활성화
+);
 
         if (!speechConfig) {
             console.error("Speech SDK configuration is missing");
@@ -429,27 +429,22 @@ function analyzePronunciation(pronunciationResult) {
         return;
     }
 
-    // 더 자세한 디버깅 로그
-    console.log('Complete pronunciation result:', {
-        privPronJson: pronunciationResult.privPronJson,
+    // SDK 응답 구조 전체를 로깅
+    console.log('Full SDK Response:', {
+        result: pronunciationResult,
+        properties: Object.getOwnPropertyNames(pronunciationResult),
         detailResult: pronunciationResult.detailResult,
-        scores: {
-            pronunciation: pronunciationResult.pronunciationScore,
-            accuracy: pronunciationResult.accuracyScore,
-            fluency: pronunciationResult.fluencyScore,
-            completeness: pronunciationResult.completenessScore
-        }
+        privPronJson: pronunciationResult.privPronJson
     });
 
-    // Azure Speech SDK의 PronunciationAssessment 내부 구조 확인
-    if (pronunciationResult.privPronJson) {
-        console.log('PronunciationAssessment details:', 
-            pronunciationResult.privPronJson.PronunciationAssessment || 
-            pronunciationResult.privPronJson.pronunciationAssessment
+    // Azure Speech SDK의 recognizedPhrase 확인 시도
+    if (pronunciationResult.privResult) {
+        console.log('Private Result Structure:', 
+            pronunciationResult.privResult,
+            pronunciationResult.privResult.recognizedPhrase
         );
     }
 
-    // 기존의 점수 표시
     const scoreElement = document.getElementById('pronunciationScore');
     if (scoreElement) {
         scoreElement.textContent = `발음 점수: ${pronunciationResult.pronunciationScore.toFixed(1)}
@@ -462,43 +457,53 @@ function analyzePronunciation(pronunciationResult) {
     if (feedbackElement) {
         let feedbackContent = `상세 분석:\n\n`;
         
-        // privPronJson에서 세부 정보 추출
         const assessmentData = pronunciationResult.privPronJson;
         
         if (assessmentData) {
-            // 인식된 텍스트 표시
             feedbackContent += `인식된 문장: "${assessmentData.Display}"\n`;
             feedbackContent += `신뢰도: ${(assessmentData.Confidence * 100).toFixed(1)}%\n\n`;
 
-            // 발음 평가 점수에 따른 피드백
+            // syllables나 phonemes 정보 추출 시도
+            if (assessmentData.SyllableAssessment || assessmentData.syllableAssessment) {
+                const syllables = assessmentData.SyllableAssessment || assessmentData.syllableAssessment;
+                feedbackContent += "음절별 분석:\n";
+                syllables.forEach(syllable => {
+                    feedbackContent += `- ${syllable.Syllable}: ${syllable.AccuracyScore}점\n`;
+                });
+            }
+
+            // 단어 수준의 평가 데이터 찾기 시도
+            const words = assessmentData.Words || 
+                         assessmentData.words || 
+                         (assessmentData.NBest && assessmentData.NBest[0]?.Words) ||
+                         [];
+            
+            if (words.length > 0) {
+                feedbackContent += "\n단어별 분석:\n";
+                words.forEach(word => {
+                    const wordScore = word.PronunciationAssessment?.AccuracyScore || 
+                                    word.pronunciationAssessment?.accuracyScore;
+                    if (wordScore !== undefined) {
+                        feedbackContent += `- "${word.Word}": ${wordScore.toFixed(1)}점`;
+                        if (wordScore < 80) {
+                            feedbackContent += " (개선 필요)";
+                        }
+                        feedbackContent += "\n";
+                    }
+                });
+            }
+
+            // 전반적인 피드백
+            feedbackContent += "\n전반적인 피드백:\n";
             if (pronunciationResult.pronunciationScore >= 80) {
-                feedbackContent += "전반적인 발음이 매우 좋습니다!\n";
+                feedbackContent += "- 전반적인 발음이 매우 좋습니다!\n";
             } else if (pronunciationResult.pronunciationScore >= 60) {
-                feedbackContent += "전반적인 발음이 괜찮습니다. 계속 연습하세요.\n";
+                feedbackContent += "- 전반적인 발음이 괜찮습니다. 계속 연습하세요.\n";
             } else {
-                feedbackContent += "발음 향상을 위해 더 많은 연습이 필요합니다.\n";
+                feedbackContent += "- 발음 향상을 위해 더 많은 연습이 필요합니다.\n";
             }
 
-            // 유창성 점수에 따른 피드백
-            if (pronunciationResult.fluencyScore >= 80) {
-                feedbackContent += "말하기가 매우 자연스럽습니다.\n";
-            } else if (pronunciationResult.fluencyScore >= 60) {
-                feedbackContent += "말하기가 조금 더 자연스러워질 수 있습니다.\n";
-            } else {
-                feedbackContent += "더 자연스러운 말하기를 위해 연습이 필요합니다.\n";
-            }
-
-            // 정확성 점수에 따른 피드백
-            if (pronunciationResult.accuracyScore >= 80) {
-                feedbackContent += "발음이 정확합니다.\n";
-            } else if (pronunciationResult.accuracyScore >= 60) {
-                feedbackContent += "발음의 정확도를 조금 더 높일 수 있습니다.\n";
-            } else {
-                feedbackContent += "발음의 정확도 향상이 필요합니다.\n";
-            }
-
-            // 개선을 위한 제안
-            feedbackContent += "\n개선을 위한 제안:\n";
+            // 개선 제안
             if (pronunciationResult.fluencyScore < 80) {
                 feedbackContent += "- 더 자연스러운 속도로 말하는 연습을 해보세요.\n";
                 feedbackContent += "- 문장을 더 부드럽게 연결해서 말해보세요.\n";
@@ -506,9 +511,6 @@ function analyzePronunciation(pronunciationResult) {
             if (pronunciationResult.accuracyScore < 80) {
                 feedbackContent += "- 각 단어의 발음을 천천히, 정확하게 연습해보세요.\n";
                 feedbackContent += "- 원어민 발음을 다시 한 번 들어보고 따라해보세요.\n";
-            }
-            if (pronunciationResult.completenessScore < 80) {
-                feedbackContent += "- 모든 단어를 빠짐없이 말하도록 주의하세요.\n";
             }
         }
 
