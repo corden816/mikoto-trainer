@@ -564,8 +564,14 @@ function analyzePronunciation(pronunciationResult) {
                                 React.createElement('div', { className: 'mt-8' }, [
                                     React.createElement('h2', { className: 'text-xl font-bold mb-4' }, '단어별 분석'),
                                     React.createElement('div', { className: 'space-y-4' },
-                                        nBest.Words.map((word, index) =>
-                                            React.createElement('div', { key: index, className: 'bg-gray-50 p-4 rounded-lg' }, [
+nBest.Words.map((word, index) => {
+    console.log('Word data:', word); // 단어 데이터 로깅
+    console.log('Phonemes:', word.Phonemes); // 음소 데이터 로깅
+
+    return React.createElement('div', { 
+        key: index, 
+        className: 'bg-gray-50 p-4 rounded-lg' 
+    }, [
                                                 // 단어와 정확도 점수
                                                 React.createElement('div', { className: 'flex justify-between items-center mb-2' }, [
                                                     React.createElement('span', { className: 'text-lg font-semibold' }, word.Word),
@@ -585,26 +591,30 @@ function analyzePronunciation(pronunciationResult) {
                                                 ),
 
                                                 // 음소 피드백 (정확도가 80 미만일 때만 표시)
-                                                word.PronunciationAssessment?.AccuracyScore < 80 && word.Phonemes &&
-                                                React.createElement('div', { 
-                                                    className: 'mt-2 p-2 bg-yellow-50 rounded border border-yellow-200'
-                                                },
-                                                    React.createElement('p', { className: 'text-sm text-yellow-700' }, [
-                                                        React.createElement('span', { className: 'font-medium' }, 'Suggestion: '),
-                                                        `Work on the pronunciation of '${
-                                                            word.Phonemes
-                                                                .filter(p => p.PronunciationAssessment?.AccuracyScore < 80)
-                                                                .map(p => p.Phoneme)
-                                                                .join(", ")
-                                                        }' sound${word.Phonemes.filter(p => p.PronunciationAssessment?.AccuracyScore < 80).length > 1 ? 's' : ''}`
-                                                    ])
-                                                )
-                                            ])
-                                        )
-                                    )
-                                ])
-                            ]);
-                        };
+        (word.PronunciationAssessment?.AccuracyScore < 80 && word.Phonemes) ?
+        React.createElement('div', { 
+            className: 'mt-2 p-2 bg-yellow-50 rounded border border-yellow-200'
+        }, 
+            React.createElement('p', { 
+                className: 'text-sm text-yellow-700' 
+            }, [
+                React.createElement('span', { 
+                    className: 'font-medium' 
+                }, 'Suggestion: '),
+                `Work on the pronunciation of '${
+                    Array.from(word.Phonemes)
+                        .filter(p => (p.PronunciationAssessment?.AccuracyScore || 100) < 80)
+                        .map(p => p.Phoneme)
+                        .join(", ")
+                }' sound${
+                    Array.from(word.Phonemes)
+                        .filter(p => (p.PronunciationAssessment?.AccuracyScore || 100) < 80)
+                        .length > 1 ? 's' : ''
+                }`
+            ])
+        ) : null
+    ])
+})
 
                         // React 컴포넌트 렌더링
                         const root = document.getElementById('pronunciationVisualizer');
