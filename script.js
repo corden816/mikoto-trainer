@@ -434,26 +434,7 @@ async function startRecording() {
     }
 }
 
-        // 연속 인식 시작
-        recognizer.startContinuousRecognitionAsync(
-            () => {
-                console.log('Recognition started');
-                document.getElementById('status').textContent = 'Recording...';
-                isRecording = true;
-                document.getElementById('startRecording').disabled = true;
-                document.getElementById('stopRecording').disabled = false;
-            },
-            (err) => {
-                console.error('Error starting recognition:', err);
-                document.getElementById('status').textContent = `Error starting recognition: ${err}`;
-            }
-        );
 
-    } catch (error) {
-        console.error('Recording error:', error);
-        document.getElementById('status').textContent = `Recording error: ${error}`;
-    }
-} // 이 중괄호가 누락되어 있었습니다
 
 // 녹음 중지
 function stopRecording() {
