@@ -365,19 +365,18 @@ async function startRecording() {
 
         // 발음 평가 설정
         const referenceText = document.querySelector('.practice-text').textContent;
-        console.log("Reference text:", referenceText); // 디버깅용
+        console.log("Reference text:", referenceText);
 
         if (!referenceText) {
             console.error("Reference text not found");
             return;
         }
 
-        // 새로운 발음 평가 설정 생성 방식
         const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
             referenceText,
             SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
             SpeechSDK.PronunciationAssessmentGranularity.Word,
-            true // Enable mispronunciation calculation
+            true // Enable miscue calculation
         );
 
         pronunciationAssessmentConfig.enableProsodyAssessment = true;
@@ -396,6 +395,9 @@ async function startRecording() {
                 try {
                     const pronunciationResult = SpeechSDK.PronunciationAssessmentResult.fromResult(e.result);
                     console.log("Pronunciation assessment result:", pronunciationResult);
+
+                    // 인식된 텍스트를 추가
+                    pronunciationResult.recognizedText = e.result.text;
 
                     // JSON 결과 가져오기
                     const jsonResult = e.result.properties.getProperty(SpeechSDK.PropertyId.SpeechServiceResponse_JsonResult);
@@ -493,7 +495,7 @@ function analyzePronunciation(pronunciationResult) {
         // 인식된 텍스트 표시
         const feedbackElement = document.getElementById('feedback');
         if (feedbackElement) {
-            let feedbackText = `인식된 텍스트: ${pronunciationResult.phrase}\n\n`;
+            let feedbackText = `인식된 텍스트: ${pronunciationResult.recognizedText}\n\n`;
 
             // JSON 파싱 시도
             if (pronunciationResult.privJson) {
@@ -523,6 +525,7 @@ function analyzePronunciation(pronunciationResult) {
                         });
 
                         // React 컴포넌트 렌더링
+                        // 단어별 유창성 점수는 표시하지 않도록 수정
                         const root = document.getElementById('pronunciationVisualizer');
                         if (root) {
                             if (!root._reactRootContainer) {
@@ -536,7 +539,7 @@ function analyzePronunciation(pronunciationResult) {
                                             words: nBest.Words.map(word => ({
                                                 word: word.Word,
                                                 accuracyScore: word.PronunciationAssessment?.AccuracyScore || 0,
-                                                fluencyScore: word.PronunciationAssessment?.FluencyScore || 0,
+                                                // 단어별 유창성 점수는 제거
                                                 phonemes: word.Phonemes || []
                                             }))
                                         }
@@ -559,6 +562,7 @@ function analyzePronunciation(pronunciationResult) {
     pitchAnalyzer.displayResults();
     pitchAnalyzer.reset();
 }
+
 
 
 function changeSample(sampleNumber) {
