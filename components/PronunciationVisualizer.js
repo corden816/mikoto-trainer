@@ -1,7 +1,8 @@
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { useState } from "react"
+// 파일 상단의 import 구문을 다음과 같이 수정
+const { Alert, AlertDescription } = window['@/components/ui/alert'];
+const { Card, CardContent, CardHeader, CardTitle } = window['@/components/ui/card'];
+const { Progress } = window['@/components/ui/progress'];
+const { useState } = React;
 
 const PronunciationVisualizer = ({ assessmentData }) => {
   const [expandedWord, setExpandedWord] = useState(null);
