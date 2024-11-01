@@ -438,6 +438,12 @@ function stopRecording() {
 // 발음 분석 - 개선된 버전
 // 발음 분석
 function analyzePronunciation(pronunciationResult) {
+    console.log('Word details:', words.map(word => ({
+    word: word.Word,
+    phonemes: word.Phonemes,
+    assessment: word.PronunciationAssessment,
+    duration: word.Duration
+})));
     if (!pronunciationResult) {
         console.error('No pronunciation result to analyze');
         return;
@@ -545,16 +551,34 @@ React.createElement('div', { className: 'mt-8' },
                     )
                 ),
                 // 발음 개선 필요 시 표시되는 알림
-                word.PronunciationAssessment?.AccuracyScore < 80 &&
-                React.createElement('div', { 
-                    className: 'mt-2 p-2 bg-yellow-50 rounded border border-yellow-200'
-                },
-                    React.createElement('p', { className: 'text-sm text-yellow-700' },
-                        '발음 개선이 필요합니다'
-                    )
-                )
-            )
-        )
+                // 발음 개선 피드백 부분 수정
+word.PronunciationAssessment?.AccuracyScore < 80 &&
+React.createElement('div', { 
+    className: 'mt-2 p-2 bg-yellow-50 rounded border border-yellow-200'
+},
+    React.createElement('p', { className: 'text-sm text-yellow-700' },
+        React.createElement('span', { className: 'font-medium' }, 'Suggestion: '),
+        // 음소 레벨 분석
+        (() => {
+            const phonemes = word.Phonemes || [];
+            const problemPhonemes = phonemes.filter(p => 
+                p.PronunciationAssessment?.AccuracyScore < 80
+            );
+            
+            if (problemPhonemes.length > 0) {
+                return `Work on the pronunciation of '${problemPhonemes.map(p => p.Phoneme).join(", ")}' sound${problemPhonemes.length > 1 ? 's' : ''}`;
+            }
+            
+            // 기본 피드백
+            return '전반적인 발음 개선이 필요합니다';
+        })()
+    ),
+    // 추가 피드백이 있는 경우
+    word.PronunciationAssessment?.FluencyScore < 80 &&
+    React.createElement('p', { 
+        className: 'text-sm text-yellow-700 mt-1'
+    },
+        '리듬과 속도에 주의를 기울이세요'
     )
 )
 
