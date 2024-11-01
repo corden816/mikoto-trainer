@@ -506,11 +506,11 @@ function analyzePronunciation(pronunciationResult) {
 React.createElement('div', { className: 'mt-8' },
     React.createElement('h2', { className: 'text-xl font-bold mb-4' }, '단어별 분석'),
     React.createElement('div', { className: 'space-y-4' },
-        words.map((word, index) =>
+        words.map((word, index) => 
             React.createElement('div', { 
                 key: index, 
                 className: 'bg-gray-50 p-4 rounded-lg'
-            }, [  // 배열로 여러 자식 요소를 전달
+            }, [
                 // 단어와 전체 점수
                 React.createElement('div', { className: 'flex justify-between items-center mb-2' },
                     React.createElement('span', { className: 'text-lg font-semibold' }, 
@@ -520,7 +520,6 @@ React.createElement('div', { className: 'mt-8' },
                         `전체 점수: ${(word.PronunciationAssessment?.AccuracyScore || 0).toFixed(1)}`
                     )
                 ),
-
                 // Accuracy 그래프
                 React.createElement('div', { className: 'flex items-center mb-2' },
                     React.createElement('span', { className: 'w-24 text-sm text-gray-600' }, 'Accuracy'),
@@ -536,7 +535,6 @@ React.createElement('div', { className: 'mt-8' },
                         `${(word.PronunciationAssessment?.AccuracyScore || 0).toFixed(1)}`
                     )
                 ),
-
                 // Fluency 그래프
                 React.createElement('div', { className: 'flex items-center mb-2' },
                     React.createElement('span', { className: 'w-24 text-sm text-gray-600' }, 'Fluency'),
@@ -552,12 +550,11 @@ React.createElement('div', { className: 'mt-8' },
                         `${(word.PronunciationAssessment?.FluencyScore || 0).toFixed(1)}`
                     )
                 ),
-
                 // 발음 개선 피드백
                 word.PronunciationAssessment?.AccuracyScore < 80 &&
                 React.createElement('div', { 
                     className: 'mt-2 p-2 bg-yellow-50 rounded border border-yellow-200'
-                },
+                }, [
                     React.createElement('p', { className: 'text-sm text-yellow-700' }, [
                         React.createElement('span', { className: 'font-medium' }, 'Suggestion: '),
                         (() => {
@@ -572,7 +569,7 @@ React.createElement('div', { className: 'mt-8' },
                             return '전반적인 발음 개선이 필요합니다';
                         })()
                     ])
-                )
+                ])
             ])
         )
     )
