@@ -1,6 +1,8 @@
 // 전역 변수
-import React from 'react';
-import ReactDOM from 'react-dom';
+const React = window.React;
+const ReactDOM = window.ReactDOM;
+// React, ReactDOM 선언 후에 추가
+import PronunciationVisualizer from './components/PronunciationVisualizer.js';
 let audioContext;
 let visualizerAnalyser;
 let speechConfig;
