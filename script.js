@@ -456,8 +456,37 @@ function analyzePronunciation(pronunciationResult) {
 완결성: ${pronunciationResult.completenessScore.toFixed(1)}`;
     }
 
-    // JSON 파싱
+        // JSON 파싱
     const assessmentJson = JSON.parse(pronunciationResult.privJson);
+    
+    // 인식된 텍스트 표시
+    const feedbackElement = document.getElementById('feedback');
+    if (feedbackElement) {
+        feedbackElement.textContent = `인식된 텍스트: ${pronunciationResult.text}\n\n`;
+        
+        // 단어별 분석 추가
+        const words = assessmentJson.NBest[0].Words;
+        feedbackElement.textContent += "단어별 분석:\n";
+        
+        words.forEach(word => {
+            const accuracy = word.PronunciationAssessment?.AccuracyScore || 0;
+            const phonemes = word.Phonemes || [];
+            
+            feedbackElement.textContent += `\n${word.Word}:\n`;
+            feedbackElement.textContent += `  정확도: ${accuracy.toFixed(1)}%\n`;
+            
+            if (accuracy < 80 && phonemes.length > 0) {
+                feedbackElement.textContent += "  음소 분석:\n";
+                phonemes.forEach(phoneme => {
+                    const phonemeScore = phoneme.PronunciationAssessment?.AccuracyScore || 0;
+                    if (phonemeScore < 80) {
+                        feedbackElement.textContent += `    ${phoneme.Phoneme}: ${phonemeScore.toFixed(1)}% - 개선 필요\n`;
+                    }
+                });
+            }
+        });
+    }
+
     
     // React 컴포넌트 렌더링
     // script.js의 analyzePronunciation 함수 내부
