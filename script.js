@@ -521,7 +521,7 @@ function analyzePronunciation(pronunciationResult) {
     pitchAnalyzer.reset();
 }
 
-// PronunciationVisualizer 컴포넌트 정의
+// PronunciationVisualizer 컴포넌트 정의 (중복 선언 제거)
 const PronunciationVisualizer = ({ words }) => {
     const getScoreColor = (score) => {
         if (score >= 80) return 'bg-green-500';
