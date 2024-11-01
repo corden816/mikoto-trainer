@@ -614,6 +614,20 @@ function analyzePronunciation(pronunciationResult) {
     pitchAnalyzer.reset();
 }
 
+function changeSample(sampleNumber) {
+    const practiceText = document.querySelector('.practice-text');
+    if (practiceText) {
+        practiceText.textContent = sampleTexts[sampleNumber] || "Sample text not found";
+    }
+
+    document.querySelectorAll('.sample-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.sample) === sampleNumber);
+    });
+
+    currentSample = sampleNumber;
+    pitchAnalyzer.reset();
+}
+
 // 모바일 지원 초기화
 function initMobileSupport() {
     const unlockAudioContext = async () => {
