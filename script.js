@@ -312,6 +312,7 @@ async function playNativeSpeaker() {
 }
 
 // 녹음 시작
+// 녹음 시작
 async function startRecording() {
     console.log("Attempting to start recording...");
 
@@ -347,13 +348,22 @@ async function startRecording() {
             return;
         }
 
+        // PronunciationAssessmentConfig 설정 수정
         const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
-    referenceText,
-    SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
-    SpeechSDK.PronunciationAssessmentGranularity.Word, // Word 레벨 분석 활성화
-    true // 상세 평가 활성화
-);
+            referenceText,
+            SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
+            SpeechSDK.PronunciationAssessmentGranularity.Word,
+            true
+        );
 
+        // 추가 설정
+        pronunciationAssessmentConfig.enableProsodyAssessment = true;  // 운율 평가 활성화
+        pronunciationAssessmentConfig.enableDetailedResultOutput = true;  // 상세 결과 출력 활성화
+        
+        // JSON 형식 설정 추가
+        speechConfig.outputFormat = SpeechSDK.OutputFormat.Detailed;
+        
+        // 인식기 설정
         if (!speechConfig) {
             console.error("Speech SDK configuration is missing");
             return;
@@ -361,25 +371,29 @@ async function startRecording() {
 
         audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
         recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+        
+        // 발음 평가 구성 적용
         pronunciationAssessmentConfig.applyTo(recognizer);
 
+        // 인식 이벤트 핸들러 설정
+        recognizer.recognized = (s, e) => {
+            if (e.result.text) {
+                // 결과 로깅 추가
+                console.log("Raw recognition result:", e.result);
+                console.log("Recognition text:", e.result.text);
+                
+                const pronunciationResult = SpeechSDK.PronunciationAssessmentResult.fromResult(e.result);
+                console.log("Pronunciation assessment result:", pronunciationResult);
+                
+                analyzePronunciation(pronunciationResult);
+            }
+        };
+
+        // 나머지 코드는 동일...
         isRecording = true;
         document.getElementById('startRecording').disabled = true;
         document.getElementById('stopRecording').disabled = false;
         document.getElementById('status').textContent = 'Recording... Speak now!';
-
-        recognizer.recognizing = (s, e) => {
-            console.log(`Recognizing: ${e.result.text}`);
-            document.getElementById('status').textContent = `Recognizing: ${e.result.text}`;
-        };
-
-        recognizer.recognized = (s, e) => {
-            if (e.result.text) {
-                const pronunciationResult = SpeechSDK.PronunciationAssessmentResult.fromResult(e.result);
-                console.log("Pronunciation Result:", pronunciationResult);
-                analyzePronunciation(pronunciationResult);
-                }
-        };
 
         recognizer.startContinuousRecognitionAsync();
     } catch (error) {
