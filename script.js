@@ -437,6 +437,7 @@ function stopRecording() {
 
 // 발음 분석 - 개선된 버전
 // 발음 분석
+// 발음 분석 함수 수정
 function analyzePronunciation(pronunciationResult) {
     if (!pronunciationResult) {
         console.error('No pronunciation result to analyze');
@@ -454,18 +455,11 @@ function analyzePronunciation(pronunciationResult) {
 
     const visualizerElement = document.getElementById('pronunciationVisualizer');
     if (visualizerElement) {
-        const assessmentData = pronunciationResult.privPronJson;
-        const words = assessmentData.Words || 
-                     assessmentData.words || 
-                     (assessmentData.NBest && assessmentData.NBest[0]?.Words) ||
-                     [];
+        // 추가된 부분: JSON 파싱 및 단어 데이터 추출
+        const assessmentJson = JSON.parse(pronunciationResult.privJson);
+        const words = assessmentJson.NBest[0].Words || [];
 
-        console.log('Word details:', words.map(word => ({
-            word: word.Word,
-            phonemes: word.Phonemes,
-            assessment: word.PronunciationAssessment,
-            duration: word.Duration
-        })));
+        console.log('Word details:', words);
 
         // React 컴포넌트 정의
         const PronunciationVisualizer = () => {
@@ -475,23 +469,31 @@ function analyzePronunciation(pronunciationResult) {
                 return 'bg-red-500';
             };
 
-            return React.createElement('div', { className: 'w-full max-w-4xl mx-auto p-6 bg-white rounded-lg' },
+            return React.createElement(
+                'div',
+                { className: 'w-full max-w-4xl mx-auto p-6 bg-white rounded-lg' },
                 // 전체 점수 섹션
-                React.createElement('div', { className: 'mb-8' },
+                React.createElement(
+                    'div',
+                    { className: 'mb-8' },
                     React.createElement('h2', { className: 'text-xl font-bold mb-4' }, '전체 평가'),
-                    React.createElement('div', { className: 'grid grid-cols-2 gap-4' },
+                    React.createElement(
+                        'div',
+                        { className: 'grid grid-cols-2 gap-4' },
                         [
                             { label: '발음', score: pronunciationResult.pronunciationScore },
                             { label: '정확성', score: pronunciationResult.accuracyScore },
                             { label: '유창성', score: pronunciationResult.fluencyScore },
                             { label: '완결성', score: pronunciationResult.completenessScore }
                         ].map(({ label, score }, index) =>
-                            React.createElement('div', { key: index, className: 'bg-gray-50 p-4 rounded-lg' },
+                            React.createElement(
+                                'div',
+                                { key: index, className: 'bg-gray-50 p-4 rounded-lg' },
                                 React.createElement('div', { className: 'text-sm text-gray-600' }, label),
-                                React.createElement('div', { className: 'text-2xl font-bold text-gray-800' }, 
-                                    score.toFixed(1)
-                                ),
-                                React.createElement('div', { className: 'w-full bg-gray-200 rounded-full h-2 mt-2' },
+                                React.createElement('div', { className: 'text-2xl font-bold text-gray-800' }, score.toFixed(1)),
+                                React.createElement(
+                                    'div',
+                                    { className: 'w-full bg-gray-200 rounded-full h-2 mt-2' },
                                     React.createElement('div', {
                                         className: `${getScoreColor(score)} rounded-full h-2`,
                                         style: { width: `${score}%` }
@@ -501,101 +503,126 @@ function analyzePronunciation(pronunciationResult) {
                         )
                     )
                 ),
-
                 // 단어별 분석 섹션
-                React.createElement('div', { className: 'mt-8' },
+                React.createElement(
+                    'div',
+                    { className: 'mt-8' },
                     React.createElement('h2', { className: 'text-xl font-bold mb-4' }, '단어별 분석'),
-                    React.createElement('div', { className: 'space-y-4' },
+                    React.createElement(
+                        'div',
+                        { className: 'space-y-4' },
                         words.map((word, index) =>
-                            React.createElement('div', { 
-                                key: index, 
-                                className: 'bg-gray-50 p-4 rounded-lg'
-                            },
+                            React.createElement(
+                                'div',
+                                { key: index, className: 'bg-gray-50 p-4 rounded-lg' },
                                 // 단어와 전체 점수
-                                                // 단어와 전체 점수 부분 수정
-React.createElement('div', { className: 'flex justify-between items-center mb-2' },
-    React.createElement('span', { className: 'text-lg font-semibold' }, 
-        word.Word || ''
-    ),
-    React.createElement('span', { className: 'text-sm font-medium text-gray-600' },
-        `전체 점수: ${(word.PronunciationAssessment?.AccuracyScore || 0).toFixed(1)}`
-    )
-)
-
+                                React.createElement(
+                                    'div',
+                                    { className: 'flex justify-between items-center mb-2' },
+                                    React.createElement('span', { className: 'text-lg font-semibold' }, word.Word || ''),
+                                    React.createElement(
+                                        'span',
+                                        { className: 'text-sm font-medium text-gray-600' },
+                                        `전체 점수: ${(word.PronunciationAssessment?.AccuracyScore || 0).toFixed(1)}`
+                                    )
+                                ),
                                 // Accuracy 그래프
-// Accuracy 그래프 부분 수정
-React.createElement('div', { className: 'flex items-center mb-2' },
-    React.createElement('span', { className: 'w-24 text-sm text-gray-600' }, 'Accuracy'),
-    React.createElement('div', { className: 'flex-1 mx-2' },
-        React.createElement('div', { className: 'w-full bg-gray-200 rounded-full h-2' },
-            React.createElement('div', {
-                className: `${getScoreColor(word.PronunciationAssessment?.AccuracyScore || 0)} rounded-full h-2`,
-                style: { width: `${word.PronunciationAssessment?.AccuracyScore || 0}%` }
-            })
-        )
-    ),
-    React.createElement('span', { className: 'w-12 text-sm text-gray-600 text-right' },
-        `${(word.PronunciationAssessment?.AccuracyScore || 0).toFixed(1)}`
-    )
-),
-
-// Fluency 그래프 부분 수정
-React.createElement('div', { className: 'flex items-center mb-2' },
-    React.createElement('span', { className: 'w-24 text-sm text-gray-600' }, 'Fluency'),
-    React.createElement('div', { className: 'flex-1 mx-2' },
-        React.createElement('div', { className: 'w-full bg-gray-200 rounded-full h-2' },
-            React.createElement('div', {
-                className: `${getScoreColor(word.PronunciationAssessment?.FluencyScore || 0)} rounded-full h-2`,
-                style: { width: `${word.PronunciationAssessment?.FluencyScore || 0}%` }
-            })
-        )
-    ),
-    React.createElement('span', { className: 'w-12 text-sm text-gray-600 text-right' },
-        `${(word.PronunciationAssessment?.FluencyScore || 0).toFixed(1)}`
-    )
-)
+                                React.createElement(
+                                    'div',
+                                    { className: 'flex items-center mb-2' },
+                                    React.createElement('span', { className: 'w-24 text-sm text-gray-600' }, 'Accuracy'),
+                                    React.createElement(
+                                        'div',
+                                        { className: 'flex-1 mx-2' },
+                                        React.createElement(
+                                            'div',
+                                            { className: 'w-full bg-gray-200 rounded-full h-2' },
+                                            React.createElement('div', {
+                                                className: `${getScoreColor(word.PronunciationAssessment?.AccuracyScore || 0)} rounded-full h-2`,
+                                                style: { width: `${word.PronunciationAssessment?.AccuracyScore || 0}%` }
+                                            })
+                                        )
+                                    ),
+                                    React.createElement(
+                                        'span',
+                                        { className: 'w-12 text-sm text-gray-600 text-right' },
+                                        `${(word.PronunciationAssessment?.AccuracyScore || 0).toFixed(1)}`
+                                    )
+                                ),
+                                // Fluency 그래프
+                                React.createElement(
+                                    'div',
+                                    { className: 'flex items-center mb-2' },
+                                    React.createElement('span', { className: 'w-24 text-sm text-gray-600' }, 'Fluency'),
+                                    React.createElement(
+                                        'div',
+                                        { className: 'flex-1 mx-2' },
+                                        React.createElement(
+                                            'div',
+                                            { className: 'w-full bg-gray-200 rounded-full h-2' },
+                                            React.createElement('div', {
+                                                className: `${getScoreColor(word.PronunciationAssessment?.FluencyScore || 0)} rounded-full h-2`,
+                                                style: { width: `${word.PronunciationAssessment?.FluencyScore || 0}%` }
+                                            })
+                                        )
+                                    ),
+                                    React.createElement(
+                                        'span',
+                                        { className: 'w-12 text-sm text-gray-600 text-right' },
+                                        `${(word.PronunciationAssessment?.FluencyScore || 0).toFixed(1)}`
+                                    )
+                                ),
                                 // 발음 개선 피드백
                                 word.PronunciationAssessment?.AccuracyScore < 80 &&
-                                React.createElement('div', { 
-                                    className: 'mt-2 p-2 bg-yellow-50 rounded border border-yellow-200'
-                                },
-                                    React.createElement('p', { className: 'text-sm text-yellow-700' },
-                                        React.createElement('span', { className: 'font-medium' }, 'Suggestion: '),
-                                        (() => {
-                                            const phonemes = word.Phonemes || [];
-                                            const problemPhonemes = phonemes.filter(p => 
-                                                p.PronunciationAssessment?.AccuracyScore < 80
-                                            );
-                                            
-                                            if (problemPhonemes.length > 0) {
-                                                return `Work on the pronunciation of '${problemPhonemes.map(p => p.Phoneme).join(", ")}' sound${problemPhonemes.length > 1 ? 's' : ''}`;
-                                            }
-                                            return '전반적인 발음 개선이 필요합니다';
-                                        })()
-                                    ),
-                                    word.PronunciationAssessment?.FluencyScore < 80 &&
-                                    React.createElement('p', { 
-                                        className: 'text-sm text-yellow-700 mt-1'
-                                    },
-                                        '리듬과 속도에 주의를 기울이세요'
+                                    React.createElement(
+                                        'div',
+                                        { className: 'mt-2 p-2 bg-yellow-50 rounded border border-yellow-200' },
+                                        React.createElement(
+                                            'p',
+                                            { className: 'text-sm text-yellow-700' },
+                                            React.createElement('span', { className: 'font-medium' }, 'Suggestion: '),
+                                            (() => {
+                                                const phonemes = word.Phonemes || [];
+                                                const problemPhonemes = phonemes.filter(
+                                                    (p) => p.PronunciationAssessment?.AccuracyScore < 80
+                                                );
+
+                                                if (problemPhonemes.length > 0) {
+                                                    return `Work on the pronunciation of '${problemPhonemes
+                                                        .map((p) => p.Phoneme)
+                                                        .join(', ')}' sound${problemPhonemes.length > 1 ? 's' : ''}`;
+                                                }
+                                                return '전반적인 발음 개선이 필요합니다';
+                                            })()
+                                        ),
+                                        word.PronunciationAssessment?.FluencyScore < 80 &&
+                                            React.createElement(
+                                                'p',
+                                                { className: 'text-sm text-yellow-700 mt-1' },
+                                                '리듬과 속도에 주의를 기울이세요'
+                                            )
                                     )
-                                )
                             )
                         )
                     )
                 ),
-
                 // 억양 분석 섹션
-                React.createElement('div', { className: 'mt-8' },
+                React.createElement(
+                    'div',
+                    { className: 'mt-8' },
                     React.createElement('h2', { className: 'text-xl font-bold mb-4' }, '억양 분석'),
-                    React.createElement('div', { className: 'bg-gray-50 p-4 rounded-lg' },
-                        React.createElement('div', { className: 'flex items-center justify-between mb-2' },
+                    React.createElement(
+                        'div',
+                        { className: 'bg-gray-50 p-4 rounded-lg' },
+                        React.createElement(
+                            'div',
+                            { className: 'flex items-center justify-between mb-2' },
                             React.createElement('span', { className: 'text-gray-600' }, '억양 유사도'),
-                            React.createElement('span', { className: 'font-semibold' },
-                                `${pitchAnalyzer.calculateSimilarity().toFixed(1)}%`
-                            )
+                            React.createElement('span', { className: 'font-semibold' }, `${pitchAnalyzer.calculateSimilarity().toFixed(1)}%`)
                         ),
-                        React.createElement('div', { className: 'w-full bg-gray-200 rounded-full h-2' },
+                        React.createElement(
+                            'div',
+                            { className: 'w-full bg-gray-200 rounded-full h-2' },
                             React.createElement('div', {
                                 className: 'bg-blue-500 rounded-full h-2',
                                 style: { width: `${pitchAnalyzer.calculateSimilarity()}%` }
@@ -607,10 +634,7 @@ React.createElement('div', { className: 'flex items-center mb-2' },
         };
 
         // React 컴포넌트 렌더링
-        ReactDOM.render(
-            React.createElement(PronunciationVisualizer),
-            visualizerElement
-        );
+        ReactDOM.render(React.createElement(PronunciationVisualizer), visualizerElement);
     }
 
     // pitchAnalyzer 결과 표시
