@@ -337,6 +337,13 @@ async function startRecording() {
     }
 
     try {
+        // Speech SDK 설정 확인 및 초기화
+        if (!speechConfig) {
+            speechConfig = SpeechSDK.SpeechConfig.fromSubscription(window.config.apiKey, window.config.region);
+            speechConfig.speechRecognitionLanguage = "en-US";
+            speechConfig.outputFormat = SpeechSDK.OutputFormat.Detailed;
+        }
+
         // AudioContext 초기화
         initAudioContext();
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -358,109 +365,74 @@ async function startRecording() {
 
         // 발음 평가 설정
         const referenceText = document.querySelector('.practice-text').textContent;
+        console.log("Reference text:", referenceText); // 디버깅용
+
         if (!referenceText) {
             console.error("Reference text not found");
             return;
         }
 
-        const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
+        // 새로운 발음 평가 설정 생성 방식
+        const pronunciationAssessmentConfig = new window.SpeechSDK.PronunciationAssessmentConfig(
             referenceText,
-            SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
-            SpeechSDK.PronunciationAssessmentGranularity.Word,
-            true
+            window.SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
+            window.SpeechSDK.PronunciationAssessmentGranularity.Word
         );
 
-        // 추가 설정
         pronunciationAssessmentConfig.enableProsodyAssessment = true;
-        pronunciationAssessmentConfig.enableDetailedResultOutput = true;
-
-        // JSON 출력 형식 설정
-        speechConfig.outputFormat = SpeechSDK.OutputFormat.Detailed;
-
-        // 구성 적용 전 로그
-        console.log("Pronunciation assessment config:", pronunciationAssessmentConfig);
-
-        // 구성 적용
-        pronunciationAssessmentConfig.applyTo(recognizer);
-
-        // Speech SDK 설정
-        if (!speechConfig) {
-            console.error("Speech SDK not initialized");
-            return;
-        }
-        speechConfig.outputFormat = SpeechSDK.OutputFormat.Detailed;
 
         // 오디오 설정 및 recognizer 생성
         audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
         recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
-        pronunciationAssessmentConfig.applyTo(recognizer);
+
+        // 발음 평가 구성 적용
+        try {
+            await pronunciationAssessmentConfig.applyTo(recognizer);
+        } catch (error) {
+            console.error("Error applying pronunciation config:", error);
+        }
 
         // 이벤트 핸들러
         recognizer.recognized = (s, e) => {
-            if (e.result && e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
-                console.log("Recognition successful:", e.result);
-                
+            if (e.result) {
+                console.log("Recognition result:", e.result);
                 try {
-                    // 디버깅을 위한 자세한 로그
                     const properties = e.result.properties;
-                    console.log("Raw properties:", properties);
+                    const pronScore = parseFloat(properties.getProperty("PronunciationAssessment_PronScore")) || 0;
+                    const accuracyScore = parseFloat(properties.getProperty("PronunciationAssessment_AccuracyScore")) || 0;
+                    const fluencyScore = parseFloat(properties.getProperty("PronunciationAssessment_FluencyScore")) || 0;
+                    const completenessScore = parseFloat(properties.getProperty("PronunciationAssessment_CompletenessScore")) || 0;
                     
-                    // 모든 사용 가능한 속성 키 출력
-                    const allProperties = [];
-                    for (let i = 0; i < properties.privKeys.length; i++) {
-                        const key = properties.privKeys[i];
-                        const value = properties.getProperty(key);
-                        allProperties.push({ key, value });
-                    }
-                    console.log("All available properties:", allProperties);
-
-                    // 발음 평가 속성 가져오기
-                    const pronAssessment = e.result.properties.getProperty("PronunciationAssessment");
-                    console.log("Raw pronunciation assessment:", pronAssessment);
-
-                    let scores;
-                    if (pronAssessment) {
-                        try {
-                            // JSON으로 파싱 시도
-                            const assessmentData = JSON.parse(pronAssessment);
-                            scores = {
-                                pronunciationScore: assessmentData.PronunciationScore,
-                                accuracyScore: assessmentData.AccuracyScore,
-                                fluencyScore: assessmentData.FluencyScore,
-                                completenessScore: assessmentData.CompletenessScore
-                            };
-                        } catch (parseError) {
-                            console.error("Error parsing pronunciation assessment:", parseError);
-                            // 개별 속성으로 시도
-                            scores = {
-                                pronunciationScore: parseFloat(properties.getProperty("PronunciationAssessment_PronScore")),
-                                accuracyScore: parseFloat(properties.getProperty("PronunciationAssessment_AccuracyScore")),
-                                fluencyScore: parseFloat(properties.getProperty("PronunciationAssessment_FluencyScore")),
-                                completenessScore: parseFloat(properties.getProperty("PronunciationAssessment_CompletenessScore"))
-                            };
-                        }
-                    }
-
-                    console.log("Retrieved scores:", scores);
-
                     const pronunciationResult = {
                         text: e.result.text,
-                        pronunciationScore: scores?.pronunciationScore || 0,
-                        accuracyScore: scores?.accuracyScore || 0,
-                        fluencyScore: scores?.fluencyScore || 0,
-                        completenessScore: scores?.completenessScore || 0,
+                        pronunciationScore: pronScore,
+                        accuracyScore: accuracyScore,
+                        fluencyScore: fluencyScore,
+                        completenessScore: completenessScore,
                         privJson: properties.getProperty("PronunciationAssessment_Json") || "{}"
                     };
 
-                    console.log("Final pronunciation result:", pronunciationResult);
                     analyzePronunciation(pronunciationResult);
-
                 } catch (error) {
                     console.error("Error processing recognition result:", error);
-                    console.error("Error details:", error.stack);
                 }
             }
         };
+
+        // 녹음 시작
+        isRecording = true;
+        document.getElementById('startRecording').disabled = true;
+        document.getElementById('stopRecording').disabled = false;
+        document.getElementById('status').textContent = 'Recording... Speak now!';
+
+        await recognizer.startContinuousRecognitionAsync();
+        console.log("Recognition started successfully");
+
+    } catch (error) {
+        console.error('Error in startRecording:', error);
+        document.getElementById('status').textContent = `Error: ${error.message}`;
+    }
+}
 
         // 연속 인식 시작
         recognizer.startContinuousRecognitionAsync(
