@@ -430,9 +430,26 @@ function analyzePronunciation(pronunciationResult) {
     }
 
     // 더 자세한 디버깅 로그
-    console.log('Complete detail result:', pronunciationResult.detailResult);
+    console.log('Complete pronunciation result:', {
+        privPronJson: pronunciationResult.privPronJson,
+        detailResult: pronunciationResult.detailResult,
+        scores: {
+            pronunciation: pronunciationResult.pronunciationScore,
+            accuracy: pronunciationResult.accuracyScore,
+            fluency: pronunciationResult.fluencyScore,
+            completeness: pronunciationResult.completenessScore
+        }
+    });
 
-    // 전체 점수 표시
+    // Azure Speech SDK의 PronunciationAssessment 내부 구조 확인
+    if (pronunciationResult.privPronJson) {
+        console.log('PronunciationAssessment details:', 
+            pronunciationResult.privPronJson.PronunciationAssessment || 
+            pronunciationResult.privPronJson.pronunciationAssessment
+        );
+    }
+
+    // 기존의 점수 표시
     const scoreElement = document.getElementById('pronunciationScore');
     if (scoreElement) {
         scoreElement.textContent = `발음 점수: ${pronunciationResult.pronunciationScore.toFixed(1)}
@@ -443,41 +460,55 @@ function analyzePronunciation(pronunciationResult) {
 
     const feedbackElement = document.getElementById('feedback');
     if (feedbackElement) {
-        let feedbackContent = `상세 분석:\n`;
+        let feedbackContent = `상세 분석:\n\n`;
+        
+        // privPronJson에서 세부 정보 추출
+        const assessmentData = pronunciationResult.privPronJson;
+        
+        if (assessmentData) {
+            // 인식된 텍스트 표시
+            feedbackContent += `인식된 문장: "${assessmentData.Display}"\n`;
+            feedbackContent += `신뢰도: ${(assessmentData.Confidence * 100).toFixed(1)}%\n\n`;
 
-        // detailResult에서 단어별 평가 데이터 추출 시도
-        const detail = pronunciationResult.detailResult;
-        const words = detail?.Words || detail?.PronunciationAssessment?.Words || [];
-
-        if (detail) {
-            // 전체 문장에 대한 피드백
-            feedbackContent += `\n인식된 문장: "${detail.Display || detail.Lexical}"\n`;
-            feedbackContent += `신뢰도: ${(detail.Confidence * 100).toFixed(1)}%\n\n`;
-
-            // 단어별 분석 시도
-            if (detail.NBest && detail.NBest[0]?.Words) {
-                const words = detail.NBest[0].Words;
-                words.forEach(word => {
-                    feedbackContent += `\n단어 "${word.Word}":\n`;
-                    if (word.PronunciationAssessment) {
-                        const assessment = word.PronunciationAssessment;
-                        feedbackContent += `- 정확도: ${assessment.AccuracyScore?.toFixed(1) || 'N/A'}\n`;
-                        feedbackContent += `- 유창성: ${assessment.FluencyScore?.toFixed(1) || 'N/A'}\n`;
-                        
-                        if (assessment.AccuracyScore < 80) {
-                            feedbackContent += `  * 발음 개선이 필요합니다\n`;
-                        }
-                        if (assessment.FluencyScore < 80) {
-                            feedbackContent += `  * 리듬과 타이밍을 개선하세요\n`;
-                        }
-                    }
-                });
+            // 발음 평가 점수에 따른 피드백
+            if (pronunciationResult.pronunciationScore >= 80) {
+                feedbackContent += "전반적인 발음이 매우 좋습니다!\n";
+            } else if (pronunciationResult.pronunciationScore >= 60) {
+                feedbackContent += "전반적인 발음이 괜찮습니다. 계속 연습하세요.\n";
             } else {
-                // 개별 단어 데이터가 없는 경우 전체 문장 분석 결과만 표시
-                feedbackContent += `전체 문장 평가:\n`;
-                feedbackContent += `- 전반적인 발음 품질이 ${pronunciationResult.pronunciationScore >= 80 ? '좋습니다' : '개선이 필요합니다'}\n`;
-                feedbackContent += `- 유창성은 ${pronunciationResult.fluencyScore >= 80 ? '자연스럽습니다' : '더 자연스러워질 수 있습니다'}\n`;
-                feedbackContent += `- 정확성은 ${pronunciationResult.accuracyScore >= 80 ? '높습니다' : '향상의 여지가 있습니다'}\n`;
+                feedbackContent += "발음 향상을 위해 더 많은 연습이 필요합니다.\n";
+            }
+
+            // 유창성 점수에 따른 피드백
+            if (pronunciationResult.fluencyScore >= 80) {
+                feedbackContent += "말하기가 매우 자연스럽습니다.\n";
+            } else if (pronunciationResult.fluencyScore >= 60) {
+                feedbackContent += "말하기가 조금 더 자연스러워질 수 있습니다.\n";
+            } else {
+                feedbackContent += "더 자연스러운 말하기를 위해 연습이 필요합니다.\n";
+            }
+
+            // 정확성 점수에 따른 피드백
+            if (pronunciationResult.accuracyScore >= 80) {
+                feedbackContent += "발음이 정확합니다.\n";
+            } else if (pronunciationResult.accuracyScore >= 60) {
+                feedbackContent += "발음의 정확도를 조금 더 높일 수 있습니다.\n";
+            } else {
+                feedbackContent += "발음의 정확도 향상이 필요합니다.\n";
+            }
+
+            // 개선을 위한 제안
+            feedbackContent += "\n개선을 위한 제안:\n";
+            if (pronunciationResult.fluencyScore < 80) {
+                feedbackContent += "- 더 자연스러운 속도로 말하는 연습을 해보세요.\n";
+                feedbackContent += "- 문장을 더 부드럽게 연결해서 말해보세요.\n";
+            }
+            if (pronunciationResult.accuracyScore < 80) {
+                feedbackContent += "- 각 단어의 발음을 천천히, 정확하게 연습해보세요.\n";
+                feedbackContent += "- 원어민 발음을 다시 한 번 들어보고 따라해보세요.\n";
+            }
+            if (pronunciationResult.completenessScore < 80) {
+                feedbackContent += "- 모든 단어를 빠짐없이 말하도록 주의하세요.\n";
             }
         }
 
