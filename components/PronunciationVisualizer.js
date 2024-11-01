@@ -1,4 +1,6 @@
 // components/PronunciationVisualizer.js
+// PronunciationVisualizer.js 상단
+const React = window.React;  // 명시적으로 window.React 사용
 const PronunciationVisualizer = ({ assessmentData }) => {
     const [expandedWord, setExpandedWord] = React.useState(null);
 
