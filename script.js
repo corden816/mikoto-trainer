@@ -391,20 +391,34 @@ async function startRecording() {
 
         // 인식 이벤트 핸들러 설정
         recognizer.recognized = (s, e) => {
-    console.log("Recognition event fired");
+    console.log("Recognition event fired", e);
     
     if (e.result) {
         console.log("Full result object:", e.result);
         
         try {
-            // 직접 결과 객체 생성
+            // 점수 가져오기
+            const pronScore = parseFloat(e.result.properties.getProperty("PronunciationAssessment_PronScore")) || 0;
+            const accuracyScore = parseFloat(e.result.properties.getProperty("PronunciationAssessment_AccuracyScore")) || 0;
+            const fluencyScore = parseFloat(e.result.properties.getProperty("PronunciationAssessment_FluencyScore")) || 0;
+            const completenessScore = parseFloat(e.result.properties.getProperty("PronunciationAssessment_CompletenessScore")) || 0;
+            const assessmentJson = e.result.properties.getProperty("PronunciationAssessment_Json");
+
+            console.log("Scores:", {
+                pronScore,
+                accuracyScore,
+                fluencyScore,
+                completenessScore,
+                assessmentJson
+            });
+
             const pronunciationResult = {
                 text: e.result.text,
-                pronunciationScore: e.result.properties.getProperty("PronunciationAssessment_PronScore") || 0,
-                accuracyScore: e.result.properties.getProperty("PronunciationAssessment_AccuracyScore") || 0,
-                fluencyScore: e.result.properties.getProperty("PronunciationAssessment_FluencyScore") || 0,
-                completenessScore: e.result.properties.getProperty("PronunciationAssessment_CompletenessScore") || 0,
-                privJson: e.result.properties.getProperty("PronunciationAssessment_Json") || "{}"
+                pronunciationScore: pronScore,
+                accuracyScore: accuracyScore,
+                fluencyScore: fluencyScore,
+                completenessScore: completenessScore,
+                privJson: assessmentJson
             };
             
             console.log("Created pronunciation result:", pronunciationResult);
@@ -412,6 +426,7 @@ async function startRecording() {
             
         } catch (error) {
             console.error("Error processing pronunciation result:", error);
+            console.error("Error details:", error.stack);
         }
     } else {
         console.log("No result object in recognition event");
@@ -468,7 +483,7 @@ function stopRecording() {
 // 발음 분석
 // 발음 분석 함수 수정
 function analyzePronunciation(pronunciationResult) {
-    console.log("Starting pronunciation analysis");
+    console.log("Starting pronunciation analysis with:", pronunciationResult);
 
     if (!pronunciationResult) {
         console.error('No pronunciation result to analyze');
@@ -491,63 +506,67 @@ function analyzePronunciation(pronunciationResult) {
             let feedbackText = `인식된 텍스트: ${pronunciationResult.text}\n\n`;
             
             // JSON 파싱 시도
-            const assessmentJson = JSON.parse(pronunciationResult.privJson);
-            console.log("Assessment JSON:", assessmentJson);
+            if (pronunciationResult.privJson) {
+                const assessmentJson = JSON.parse(pronunciationResult.privJson);
+                console.log("Parsed assessment JSON:", assessmentJson);
 
-            if (assessmentJson.Words) {
-                feedbackText += "단어별 분석:\n";
-                assessmentJson.Words.forEach(word => {
-                    feedbackText += `\n${word.Word}:\n`;
-                    if (word.PronunciationAssessment) {
-                        const accuracy = word.PronunciationAssessment.AccuracyScore;
-                        feedbackText += `  정확도: ${accuracy}%\n`;
-                        
-                        if (accuracy < 80 && word.Phonemes) {
-                            feedbackText += "  음소 분석:\n";
-                            word.Phonemes.forEach(phoneme => {
-                                if (phoneme.PronunciationAssessment && 
-                                    phoneme.PronunciationAssessment.AccuracyScore < 80) {
-                                    feedbackText += `    ${phoneme.Phoneme}: ${phoneme.PronunciationAssessment.AccuracyScore}% - 개선 필요\n`;
-                                }
-                            });
+                if (assessmentJson.Words && Array.isArray(assessmentJson.Words)) {
+                    feedbackText += "단어별 분석:\n";
+                    assessmentJson.Words.forEach(word => {
+                        feedbackText += `\n${word.Word}:\n`;
+                        if (word.PronunciationAssessment) {
+                            const accuracy = word.PronunciationAssessment.AccuracyScore;
+                            feedbackText += `  정확도: ${accuracy}%\n`;
+                            
+                            if (accuracy < 80 && word.Phonemes) {
+                                feedbackText += "  음소 분석:\n";
+                                word.Phonemes.forEach(phoneme => {
+                                    if (phoneme.PronunciationAssessment && 
+                                        phoneme.PronunciationAssessment.AccuracyScore < 80) {
+                                        feedbackText += `    ${phoneme.Phoneme}: ${phoneme.PronunciationAssessment.AccuracyScore}% - 개선 필요\n`;
+                                    }
+                                });
+                            }
+                        }
+                    });
+
+                    // React 컴포넌트 렌더링
+                    const root = document.getElementById('pronunciationVisualizer');
+                    if (root) {
+                        if (!root._reactRootContainer) {
+                            ReactDOM.createRoot(root).render(
+                                React.createElement(window.PronunciationVisualizer, {
+                                    assessmentData: {
+                                        pronunciationScore: pronunciationResult.pronunciationScore,
+                                        accuracyScore: pronunciationResult.accuracyScore,
+                                        fluencyScore: pronunciationResult.fluencyScore,
+                                        completenessScore: pronunciationResult.completenessScore,
+                                        words: assessmentJson.Words.map(word => ({
+                                            word: word.Word,
+                                            accuracyScore: word.PronunciationAssessment?.AccuracyScore || 0,
+                                            fluencyScore: word.PronunciationAssessment?.FluencyScore || 0,
+                                            phonemes: word.Phonemes || []
+                                        }))
+                                    }
+                                })
+                            );
                         }
                     }
-                });
+                }
             }
             feedbackElement.textContent = feedbackText;
         }
 
-        // React 컴포넌트 렌더링
-        const root = document.getElementById('pronunciationVisualizer');
-        if (root) {
-            if (!root._reactRootContainer) {
-                ReactDOM.createRoot(root).render(
-                    React.createElement(window.PronunciationVisualizer, {
-                        assessmentData: {
-                            pronunciationScore: pronunciationResult.pronunciationScore,
-                            accuracyScore: pronunciationResult.accuracyScore,
-                            fluencyScore: pronunciationResult.fluencyScore,
-                            completenessScore: pronunciationResult.completenessScore,
-                            words: assessmentJson.Words.map(word => ({
-                                word: word.Word,
-                                accuracyScore: word.PronunciationAssessment?.AccuracyScore || 0,
-                                fluencyScore: word.PronunciationAssessment?.FluencyScore || 0,
-                                phonemes: word.Phonemes || []
-                            }))
-                        }
-                    })
-                );
-            }
-        }
-
     } catch (error) {
         console.error("Error analyzing pronunciation:", error);
+        console.error("Error details:", error.stack);
     }
 
     // pitchAnalyzer 결과 표시
     pitchAnalyzer.displayResults();
     pitchAnalyzer.reset();
 }
+
 function changeSample(sampleNumber) {
     const practiceText = document.querySelector('.practice-text');
     if (practiceText) {
