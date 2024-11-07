@@ -657,11 +657,6 @@ if (pronunciationResult.privJson) {
     feedbackElement.textContent = feedbackText;
 }
  
-    } catch (error) {
-        console.error("Error analyzing pronunciation:", error);
-        console.error("Error details:", error.stack);
-    }
-
     // pitchAnalyzer 결과 표시
     pitchAnalyzer.displayResults();
     pitchAnalyzer.reset();
