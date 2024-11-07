@@ -617,7 +617,7 @@ React.createElement('div', { className: 'mt-8' }, [
             ]);
         })
     )
-])
+]),
 
                                         // 음소 피드백 부분 수정
                                         (word.PronunciationAssessment?.AccuracyScore < 80) && React.createElement('div', {
