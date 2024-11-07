@@ -521,16 +521,16 @@ function analyzePronunciation(pronunciationResult) {
                     }))
                 });
 
-                // nBest 변수 정의 추가
-                const nBest = assessmentJson.NBest?.[0];
-
-                // React 컴포넌트 정의
-                const PronunciationVisualizer = () => {
-                    const getScoreColor = (score) => {
-                        if (score >= 80) return 'bg-green-500';
-                        if (score >= 60) return 'bg-yellow-500';
-                        return 'bg-red-500';
-                    };
+   if (assessmentJson.NBest && Array.isArray(assessmentJson.NBest)) {
+        const nBest = assessmentJson.NBest[0];
+        if (nBest.Words && Array.isArray(nBest.Words)) {
+            // React 컴포넌트 정의
+            const PronunciationVisualizer = () => {
+                const getScoreColor = (score) => {
+                    if (score >= 80) return 'bg-green-500';
+                    if (score >= 60) return 'bg-yellow-500';
+                    return 'bg-red-500';
+                };
 
                     return React.createElement('div', { className: 'w-full max-w-4xl mx-auto p-6 bg-white rounded-lg' }, [
                         // 전체 점수 섹션
