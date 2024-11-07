@@ -501,31 +501,17 @@ function analyzePronunciation(pronunciationResult) {
             let feedbackText = `인식된 텍스트: ${pronunciationResult.recognizedText}\n\n`;
 
             // JSON 파싱 시도
-            if (pronunciationResult.privJson) {
-                const assessmentJson = JSON.parse(pronunciationResult.privJson);
-                console.log("Parsed assessment JSON:", assessmentJson);
-
-                if (assessmentJson.NBest && Array.isArray(assessmentJson.NBest)) {
-                    const nBest = assessmentJson.NBest[0];
-                    if (nBest.Words && Array.isArray(nBest.Words)) {
-                        feedbackText += "단어별 분석:\n";
-                        nBest.Words.forEach(word => {
-                            feedbackText += `\n${word.Word}:\n`;
-                            if (word.PronunciationAssessment) {
-                                const accuracy = word.PronunciationAssessment.AccuracyScore;
-                                feedbackText += `  정확도: ${accuracy}%\n`;
-
-                                if (accuracy < 80 && word.Phonemes) {
-                                    feedbackText += "  음소 분석:\n";
-                                    word.Phonemes.forEach(phoneme => {
-                                        if (phoneme.PronunciationAssessment &&
-                                            phoneme.PronunciationAssessment.AccuracyScore < 80) {
-                                            feedbackText += `    ${phoneme.Phoneme}: ${phoneme.PronunciationAssessment.AccuracyScore}% - 개선 필요\n`;
-                                        }
-                                    });
-                                }
-                            }
-                        });
+if (pronunciationResult.privJson) {
+    const assessmentJson = JSON.parse(pronunciationResult.privJson);
+    console.log("Detailed assessment JSON:", {
+        full: assessmentJson,
+        words: assessmentJson.NBest?.[0]?.Words,
+        wordDetails: assessmentJson.NBest?.[0]?.Words?.map(word => ({
+            word: word.Word,
+            assessment: word.PronunciationAssessment,
+            phonemes: word.Phonemes
+        }))
+    });
 
                         // React 컴포넌트 정의
                         const PronunciationVisualizer = () => {
@@ -590,35 +576,30 @@ function analyzePronunciation(pronunciationResult) {
                                                     )
                                                 ),
 
-                                                // 음소 피드백 (정확도가 80 미만일 때만 표시)
-                                                (word.PronunciationAssessment?.AccuracyScore < 80 && word.Phonemes) ?
-                                                    React.createElement('div', {
-                                                        className: 'mt-2 p-2 bg-yellow-50 rounded border border-yellow-200'
-                                                    },
-                                                        React.createElement('p', {
-                                                            className: 'text-sm text-yellow-700'
-                                                        }, [
-                                                            React.createElement('span', {
-                                                                className: 'font-medium'
-                                                            }, 'Suggestion: '),
-                                                            `Work on the pronunciation of '${
-                                                                word.Phonemes
-                                                                    .filter(p => (p.PronunciationAssessment?.AccuracyScore || 100) < 80)
-                                                                    .map(p => p.Phoneme)
-                                                                    .join(", ")
-                                                            }' sound${
-                                                                word.Phonemes
-                                                                    .filter(p => (p.PronunciationAssessment?.AccuracyScore || 100) < 80)
-                                                                    .length > 1 ? 's' : ''
-                                                            }`
-                                                        ])
-                                                    ) : null
-                                            ]);
-                                        })
-                                    )
-                                ])
-                            ]);
-                        };
+// 음소 피드백 부분 수정
+(word.PronunciationAssessment?.AccuracyScore < 80) && React.createElement('div', {
+    className: 'mt-2 p-2 bg-yellow-50 rounded border border-yellow-200'
+},
+    React.createElement('p', {
+        className: 'text-sm text-yellow-700'
+    }, [
+        React.createElement('span', {
+            className: 'font-medium'
+        }, 'Suggestion: '),
+        word.Phonemes && word.Phonemes.length > 0 ?
+            `Work on the pronunciation of '${
+                word.Phonemes
+                    .filter(p => p.PronunciationAssessment && 
+                               p.PronunciationAssessment.AccuracyScore < 80)
+                    .map(p => p.Phoneme)
+                    .join(", ")
+            }' sound${
+                word.Phonemes.filter(p => p.PronunciationAssessment && 
+                                        p.PronunciationAssessment.AccuracyScore < 80).length > 1 ? 's' : ''
+            }` :
+            '전반적인 발음 개선이 필요합니다'
+    ])
+)
 
                         // React 컴포넌트 렌더링
                         const root = document.getElementById('pronunciationVisualizer');
