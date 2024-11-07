@@ -562,14 +562,14 @@ React.createElement('div', { className: 'mt-8' }, [
     React.createElement('h2', { className: 'text-xl font-bold mb-4' }, '단어별 분석'),
     React.createElement('div', { className: 'space-y-4' },
         nBest.Words.map((word, index) => {
-            console.log('Word data:', word); // 단어 데이터 로깅
-            console.log('Phonemes:', word.Phonemes); // 음소 데이터 로깅
+            console.log('Word data:', word);
+            console.log('Phonemes:', word.Phonemes);
 
             return React.createElement('div', {
                 key: index,
                 className: 'bg-gray-50 p-4 rounded-lg'
             }, [
-                // 단어와 정확도 점수
+                // 단어와 점수 표시
                 React.createElement('div', { className: 'flex justify-between items-center mb-2' }, [
                     React.createElement('span', { className: 'text-lg font-semibold' }, word.Word),
                     React.createElement('div', { className: 'flex flex-col items-end' }, [
@@ -598,57 +598,51 @@ React.createElement('div', { className: 'mt-8' }, [
                     )
                 ]),
 
-                // 유창성 그래프 추가
+                // 유창성 그래프
                 React.createElement('div', { className: 'flex items-center mb-2' }, [
                     React.createElement('span', { className: 'w-24 text-sm text-gray-600' }, '유창성'),
                     React.createElement('div', { className: 'flex-1 mx-2' },
                         React.createElement('div', { className: 'w-full bg-gray-200 rounded-full h-2' },
                             React.createElement('div', {
                                 className: `${getScoreColor(word.PronunciationAssessment?.FluencyScore || 0)} rounded-full h-2`,
-                                style: { width: `${word.PronunciationAssessment?.FluencyScore || 0}%`}
-                                })
-                            )
+                                style: { width: `${word.PronunciationAssessment?.FluencyScore || 0}%` }
+                            })
                         )
                     ),
                     React.createElement('span', { className: 'w-12 text-sm text-gray-600 text-right' },
                         `${(word.PronunciationAssessment?.FluencyScore || 0).toFixed(1)}`
                     )
-                ])
+                ]),
+
+                // 음소 피드백
+                (word.PronunciationAssessment?.AccuracyScore < 80) && 
+                React.createElement('div', {
+                    className: 'mt-2 p-2 bg-yellow-50 rounded border border-yellow-200'
+                },
+                    React.createElement('p', {
+                        className: 'text-sm text-yellow-700'
+                    }, [
+                        React.createElement('span', {
+                            className: 'font-medium'
+                        }, 'Suggestion: '),
+                        word.Phonemes && word.Phonemes.length > 0 ?
+                            `Work on the pronunciation of '${
+                                word.Phonemes
+                                    .filter(p => p.PronunciationAssessment && 
+                                               p.PronunciationAssessment.AccuracyScore < 80)
+                                    .map(p => p.Phoneme)
+                                    .join(", ")
+                            }' sound${
+                                word.Phonemes.filter(p => p.PronunciationAssessment && 
+                                                      p.PronunciationAssessment.AccuracyScore < 80).length > 1 ? 's' : ''
+                            }` :
+                            '전반적인 발음 개선이 필요합니다'
+                    ])
+                )
             ]);
         })
     )
 ]),
-
-                                        // 음소 피드백 부분 수정
-                                        (word.PronunciationAssessment?.AccuracyScore < 80) && React.createElement('div', {
-                                            className: 'mt-2 p-2 bg-yellow-50 rounded border border-yellow-200'
-                                        },
-                                            React.createElement('p', {
-                                                className: 'text-sm text-yellow-700'
-                                            }, [
-                                                React.createElement('span', {
-                                                    className: 'font-medium'
-                                                }, 'Suggestion: '),
-                                                word.Phonemes && word.Phonemes.length > 0 ?
-                                                    `Work on the pronunciation of '${
-                                                        word.Phonemes
-                                                            .filter(p => p.PronunciationAssessment && 
-                                                                        p.PronunciationAssessment.AccuracyScore < 80)
-                                                            .map(p => p.Phoneme)
-                                                            .join(", ")
-                                                    }' sound${
-                                                        word.Phonemes.filter(p => p.PronunciationAssessment && 
-                                                                                p.PronunciationAssessment.AccuracyScore < 80).length > 1 ? 's' : ''
-                                                    }` :
-                                                    '전반적인 발음 개선이 필요합니다'
-                                            ])
-                                        )
-                                    ]);
-                                })
-                            )
-                        ])
-                    ]);
-                }
 
                 // React 컴포넌트 렌더링
                 const root = document.getElementById('pronunciationVisualizer');
