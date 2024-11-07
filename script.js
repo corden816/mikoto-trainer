@@ -561,77 +561,80 @@ const PronunciationVisualizer = () => {
         ]),
 
         // 2. 텍스트 비교 분석 섹션
-        React.createElement('div', { className: 'mb-8 p-4 bg-gray-50 rounded-lg' }, [
-            React.createElement('h3', { className: 'text-lg font-semibold mb-3' }, '텍스트 비교 분석'),
-            React.createElement('div', { className: 'space-y-4' }, [
-                React.createElement('table', { className: 'w-full border-collapse' }, [
-                    React.createElement('thead', null, 
-                        React.createElement('tr', null, [
-                            React.createElement('th', { className: 'text-left pb-2 w-1/2 text-gray-600 text-sm font-medium' }, '기준 텍스트'),
-                            React.createElement('th', { className: 'text-left pb-2 w-1/2 text-gray-600 text-sm font-medium' }, '인식된 텍스트'),
-                        ])
+        // 텍스트 비교 분석 섹션만 수정
+React.createElement('div', { className: 'mb-8 p-4 bg-gray-50 rounded-lg' }, [
+    React.createElement('h3', { className: 'text-lg font-semibold mb-3' }, '텍스트 비교 분석'),
+    React.createElement('div', { className: 'space-y-4' }, [
+        React.createElement('table', { className: 'w-full border-collapse' }, [
+            React.createElement('thead', null, 
+                React.createElement('tr', null, [
+                    React.createElement('th', { className: 'text-left pb-2 w-1/2 text-gray-600 text-sm font-medium' }, '기준 텍스트'),
+                    React.createElement('th', { className: 'text-left pb-2 w-1/2 text-gray-600 text-sm font-medium' }, '인식된 텍스트')
+                ])
+            ),
+            React.createElement('tbody', null, [
+                React.createElement('tr', null, [
+                    // 기준 텍스트 열
+                    React.createElement('td', { 
+                        className: 'align-top pr-4 text-sm border-r border-gray-200',
+                        style: { minHeight: '100px' }
+                    }, 
+                        // 기준 텍스트 처리
+                        document.querySelector('.practice-text').textContent
+                            .split(' ')
+                            .map((word, idx) => {
+                                const cleanReferenceWord = word.replace(/[.,!?]$/, '');
+                                const isOmitted = !nBest.Words.some(w => 
+                                    w.Word.toLowerCase().replace(/[.,!?]$/, '') === cleanReferenceWord.toLowerCase()
+                                );
+                                
+                                return React.createElement('span', {
+                                    key: `ref-${idx}`,
+                                    className: `inline-block mr-1 px-1 rounded ${isOmitted ? 'bg-red-100 text-red-800' : ''}`
+                                }, word);
+                            })
                     ),
-                    React.createElement('tbody', null, [
-                        React.createElement('tr', null, [
-                            React.createElement('td', { 
-    className: 'align-top pr-4 text-sm border-r border-gray-200',
-    style: { minHeight: '100px' }
-}, 
-    document.querySelector('.practice-text').textContent.split(' ').map((word, idx) => {
-        // 단어에서 온점과 쉼표 제거 (비교용)
-        const cleanWord = word.replace(/[.,!?]$/, '');
-        
-        return React.createElement('span', {
-            key: `ref-${idx}`,
-            className: `inline-block mr-1 px-1 rounded ${
-                !nBest.Words.some(w => 
-                    w.Word.toLowerCase().replace(/[.,!?]$/, '') === cleanWord.toLowerCase()
-                ) ? 'bg-red-100 text-red-800' : ''
-            }`
-        }, word) // 표시할 때는 원래 단어 사용
-    })
-),
-React.createElement('td', { 
-    className: 'align-top pl-4 text-sm',
-    style: { minHeight: '100px' }
-}, 
-    nBest.Words.map((word, idx) => {
-        // 단어에서 온점과 쉼표 제거 (비교용)
-        const cleanWord = word.Word.replace(/[.,!?]$/, '');
-        
-        return React.createElement('span', {
-            key: `rec-${idx}`,
-            className: `inline-block mr-1 px-1 rounded ${
-                !document.querySelector('.practice-text').textContent
-                    .toLowerCase()
-                    .split(' ')
-                    .map(w => w.replace(/[.,!?]$/, ''))
-                    .includes(cleanWord.toLowerCase())
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : ''
-            }`
-        }, word.Word) // 표시할 때는 원래 단어 사용
-                                )
-                            )
-                        ])
-                    ])
-                ]),
-                React.createElement('div', { className: 'flex gap-4 mt-3 text-sm' }, [
-                    React.createElement('div', { className: 'flex items-center' }, [
-                        React.createElement('span', { 
-                            className: 'inline-block w-3 h-3 mr-2 bg-red-100 border border-red-200 rounded'
-                        }),
-                        React.createElement('span', { className: 'text-gray-600' }, '생략된 단어')
-                    ]),
-                    React.createElement('div', { className: 'flex items-center' }, [
-                        React.createElement('span', { 
-                            className: 'inline-block w-3 h-3 mr-2 bg-yellow-100 border border-yellow-200 rounded'
-                        }),
-                        React.createElement('span', { className: 'text-gray-600' }, '추가된 단어')
-                    ])
+                    // 인식된 텍스트 열
+                    React.createElement('td', { 
+                        className: 'align-top pl-4 text-sm',
+                        style: { minHeight: '100px' }
+                    }, 
+                        // 인식된 텍스트 처리
+                        nBest.Words.map((word, idx) => {
+                            const cleanWord = word.Word.replace(/[.,!?]$/, '');
+                            const referenceWords = document.querySelector('.practice-text').textContent
+                                .toLowerCase()
+                                .split(' ')
+                                .map(w => w.replace(/[.,!?]$/, ''));
+                            
+                            const isAdded = !referenceWords.includes(cleanWord.toLowerCase());
+                            
+                            return React.createElement('span', {
+                                key: `rec-${idx}`,
+                                className: `inline-block mr-1 px-1 rounded ${isAdded ? 'bg-yellow-100 text-yellow-800' : ''}`
+                            }, word.Word);
+                        })
+                    )
                 ])
             ])
         ]),
+        // 범례
+        React.createElement('div', { className: 'flex gap-4 mt-3 text-sm' }, [
+            React.createElement('div', { className: 'flex items-center' }, [
+                React.createElement('span', { 
+                    className: 'inline-block w-3 h-3 mr-2 bg-red-100 border border-red-200 rounded'
+                }),
+                React.createElement('span', { className: 'text-gray-600' }, '생략된 단어')
+            ]),
+            React.createElement('div', { className: 'flex items-center' }, [
+                React.createElement('span', { 
+                    className: 'inline-block w-3 h-3 mr-2 bg-yellow-100 border border-yellow-200 rounded'
+                }),
+                React.createElement('span', { className: 'text-gray-600' }, '추가된 단어')
+            ])
+        ])
+    ])
+])
 
         // 3. 단어별 분석 섹션
         React.createElement('div', { className: 'mt-8' }, [
