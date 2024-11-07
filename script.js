@@ -605,7 +605,7 @@ React.createElement('div', { className: 'mt-8' }, [
                         React.createElement('div', { className: 'w-full bg-gray-200 rounded-full h-2' },
                             React.createElement('div', {
                                 className: `${getScoreColor(word.PronunciationAssessment?.FluencyScore || 0)} rounded-full h-2`,
-                                style: { width: `${word.PronunciationAssessment?.FluencyScore || 0}%`
+                                style: { width: `${word.PronunciationAssessment?.FluencyScore || 0}%`}
                                 })
                             )
                         )
