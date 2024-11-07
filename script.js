@@ -376,11 +376,19 @@ async function startRecording() {
         const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
             referenceText,
             SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
-            SpeechSDK.PronunciationAssessmentGranularity.Word,
+            SpeechSDK.PronunciationAssessmentGranularity.Phoneme,
             true // Enable mispronunciation calculation
         );
 
-        pronunciationAssessmentConfig.enableProsodyAssessment = true;
+        // 추가 설정
+pronunciationAssessmentConfig.enableProsodyAssessment = true;
+pronunciationAssessmentConfig.enableDetailedResultOutput = true;
+
+// JSON 형식 설정
+speechConfig.outputFormat = SpeechSDK.OutputFormat.Detailed;
+
+// 발음 평가 구성을 recognizer에 적용하기 전에 추가 설정
+speechConfig.setProperty("pronunciation.phonemeAlphabet", "IPA");
 
         // 오디오 설정 및 recognizer 생성
         audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
