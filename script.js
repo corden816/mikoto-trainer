@@ -526,6 +526,16 @@ function analyzePronunciation(pronunciationResult) {
             return;
         }
 
+        // 단어 정규화 함수 정의
+        function normalizeWord(word) {
+            return word.toLowerCase().replace(/^[^\w]+|[^\w]+$/g, '');
+        }
+
+        // 기준 단어 목록 생성
+        const referenceWords = referenceText
+            .split(/\s+/)
+            .map(w => normalizeWord(w));
+
         // JSON 파싱 시도
         if (pronunciationResult.privJson) {
             const assessmentJson = JSON.parse(pronunciationResult.privJson);
@@ -580,7 +590,7 @@ function analyzePronunciation(pronunciationResult) {
                                 React.createElement('h3', { className: 'text-lg font-semibold mb-3' }, '텍스트 비교 분석'),
                                 React.createElement('div', { className: 'space-y-4' }, [
                                     React.createElement('table', { className: 'w-full border-collapse' }, [
-                                        React.createElement('thead', null, 
+                                        React.createElement('thead', null,
                                             React.createElement('tr', null, [
                                                 React.createElement('th', { className: 'text-left pb-2 w-1/2 text-gray-600 text-sm font-medium' }, '기준 텍스트'),
                                                 React.createElement('th', { className: 'text-left pb-2 w-1/2 text-gray-600 text-sm font-medium' }, '인식된 텍스트')
@@ -589,19 +599,19 @@ function analyzePronunciation(pronunciationResult) {
                                         React.createElement('tbody', null, [
                                             React.createElement('tr', null, [
                                                 // 기준 텍스트 열
-                                                React.createElement('td', { 
+                                                React.createElement('td', {
                                                     className: 'align-top pr-4 text-sm border-r border-gray-200',
                                                     style: { minHeight: '100px' }
-                                                }, 
+                                                },
                                                     // 기준 텍스트 처리
                                                     referenceText
-                                                        .split(' ')
+                                                        .split(/\s+/)
                                                         .map((word, idx) => {
-                                                            const cleanReferenceWord = word.replace(/[.,!?]$/, '');
-                                                            const isOmitted = !nBest.Words.some(w => 
-                                                                w.Word.toLowerCase().replace(/[.,!?]$/, '') === cleanReferenceWord.toLowerCase()
+                                                            const cleanReferenceWord = normalizeWord(word);
+                                                            const isOmitted = !nBest.Words.some(w =>
+                                                                normalizeWord(w.Word) === cleanReferenceWord
                                                             );
-                                                            
+
                                                             return React.createElement('span', {
                                                                 key: `ref-${idx}`,
                                                                 className: `inline-block mr-1 px-1 rounded ${isOmitted ? 'bg-red-100 text-red-800' : ''}`
@@ -609,20 +619,15 @@ function analyzePronunciation(pronunciationResult) {
                                                         })
                                                 ),
                                                 // 인식된 텍스트 열
-                                                React.createElement('td', { 
+                                                React.createElement('td', {
                                                     className: 'align-top pl-4 text-sm',
                                                     style: { minHeight: '100px' }
-                                                }, 
+                                                },
                                                     // 인식된 텍스트 처리
                                                     nBest.Words.map((word, idx) => {
-                                                        const cleanWord = word.Word.replace(/[.,!?]$/, '');
-                                                        const referenceWords = referenceText
-                                                            .toLowerCase()
-                                                            .split(' ')
-                                                            .map(w => w.replace(/[.,!?]$/, ''));
-                                                        
-                                                        const isAdded = !referenceWords.includes(cleanWord.toLowerCase());
-                                                        
+                                                        const normalizedWord = normalizeWord(word.Word);
+                                                        const isAdded = !referenceWords.includes(normalizedWord);
+
                                                         return React.createElement('span', {
                                                             key: `rec-${idx}`,
                                                             className: `inline-block mr-1 px-1 rounded ${isAdded ? 'bg-yellow-100 text-yellow-800' : ''}`
@@ -635,13 +640,13 @@ function analyzePronunciation(pronunciationResult) {
                                     // 범례
                                     React.createElement('div', { className: 'flex gap-4 mt-3 text-sm' }, [
                                         React.createElement('div', { className: 'flex items-center' }, [
-                                            React.createElement('span', { 
+                                            React.createElement('span', {
                                                 className: 'inline-block w-3 h-3 mr-2 bg-red-100 border border-red-200 rounded'
                                             }),
                                             React.createElement('span', { className: 'text-gray-600' }, '생략된 단어')
                                         ]),
                                         React.createElement('div', { className: 'flex items-center' }, [
-                                            React.createElement('span', { 
+                                            React.createElement('span', {
                                                 className: 'inline-block w-3 h-3 mr-2 bg-yellow-100 border border-yellow-200 rounded'
                                             }),
                                             React.createElement('span', { className: 'text-gray-600' }, '추가된 단어')
@@ -655,10 +660,10 @@ function analyzePronunciation(pronunciationResult) {
                                 React.createElement('h2', { className: 'text-xl font-bold mb-4' }, '단어별 분석'),
                                 React.createElement('div', { className: 'space-y-4' },
                                     nBest.Words.map((word, index) => {
-                                        const fluencyScore = word.PronunciationAssessment?.FluencyScore || 
-                                                        (word.PronunciationAssessment?.AccuracyScore * 0.7 + 
-                                                        pronunciationResult.fluencyScore * 0.3);
-                                        
+                                        const fluencyScore = word.PronunciationAssessment?.FluencyScore ||
+                                                            (word.PronunciationAssessment?.AccuracyScore * 0.7 +
+                                                            pronunciationResult.fluencyScore * 0.3);
+
                                         return React.createElement('div', {
                                             key: index,
                                             className: 'bg-gray-50 p-4 rounded-lg'
@@ -708,7 +713,7 @@ function analyzePronunciation(pronunciationResult) {
                                             ]),
 
                                             // 음소 피드백
-                                            (word.PronunciationAssessment?.AccuracyScore < 80) && 
+                                            (word.PronunciationAssessment?.AccuracyScore < 80) &&
                                             React.createElement('div', {
                                                 className: 'mt-2 p-2 bg-yellow-50 rounded border border-yellow-200'
                                             },
@@ -721,12 +726,12 @@ function analyzePronunciation(pronunciationResult) {
                                                     word.Phonemes && word.Phonemes.length > 0 ?
                                                         `Work on the pronunciation of '${
                                                             word.Phonemes
-                                                                .filter(p => p.PronunciationAssessment && 
+                                                                .filter(p => p.PronunciationAssessment &&
                                                                             p.PronunciationAssessment.AccuracyScore < 80)
                                                                 .map(p => p.Phoneme)
                                                                 .join(", ")
                                                         }' sound${
-                                                            word.Phonemes.filter(p => p.PronunciationAssessment && 
+                                                            word.Phonemes.filter(p => p.PronunciationAssessment &&
                                                                                     p.PronunciationAssessment.AccuracyScore < 80).length > 1 ? 's' : ''
                                                         }` :
                                                         '전반적인 발음 개선이 필요합니다'
@@ -757,6 +762,7 @@ function analyzePronunciation(pronunciationResult) {
     pitchAnalyzer.displayResults();
     pitchAnalyzer.reset();
 }
+
 
 
 
