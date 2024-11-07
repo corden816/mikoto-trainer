@@ -560,42 +560,75 @@ function analyzePronunciation(pronunciationResult) {
                             ]),
 
                             // 단어별 분석 섹션
-                            React.createElement('div', { className: 'mt-8' }, [
-                                React.createElement('h2', { className: 'text-xl font-bold mb-4' }, '단어별 분석'),
-                                React.createElement('div', { className: 'mb-4 p-4 bg-gray-50 rounded-lg' }, [
-        React.createElement('h3', { className: 'text-lg font-semibold mb-2' }, '텍스트 비교'),
-        React.createElement('div', { className: 'space-y-2' }, [
-            React.createElement('div', { className: 'text-sm' }, [
-                React.createElement('span', { className: 'font-medium text-gray-700' }, '기준 텍스트: '),
-                React.createElement('span', { className: 'text-gray-900' }, 
-                    document.querySelector('.practice-text').textContent
-                )
-            ]),
-            React.createElement('div', { className: 'text-sm' }, [
-                React.createElement('span', { className: 'font-medium text-gray-700' }, '인식된 텍스트: '),
-                ...nBest.Words.map((word, idx) => 
-                    React.createElement('span', {
-                        key: idx,
-                        className: `mx-0.5 ${
-                            word.OmittedInReference ? 'text-orange-500' :  // 참조 텍스트에 없는 추가된 단어
-                            word.OmittedInRecognized ? 'text-gray-400' :   // 참조 텍스트에는 있지만 발화되지 않은 단어
-                            'text-gray-900'                                // 정상적으로 인식된 단어
-                        }`
-                    }, word.Word)
-                )
-            ]),
-            React.createElement('div', { className: 'text-xs mt-1' }, [
-                React.createElement('span', { className: 'inline-block mr-4' }, [
-                    React.createElement('span', { className: 'text-orange-500' }, '■'),
-                    ' 추가된 단어'
-                ]),
-                React.createElement('span', { className: 'inline-block' }, [
-                    React.createElement('span', { className: 'text-gray-400' }, '■'),
-                    ' 생략된 단어'
+// analyzePronunciation 함수 내의 텍스트 비교 섹션 수정
+React.createElement('div', { className: 'mb-6 p-4 bg-gray-50 rounded-lg' }, [
+    React.createElement('h3', { className: 'text-lg font-semibold mb-3' }, '텍스트 비교 분석'),
+    React.createElement('div', { className: 'space-y-4' }, [
+        // 기준 텍스트와 인식된 텍스트를 나란히 비교하는 테이블
+        React.createElement('table', { className: 'w-full border-collapse' }, [
+            React.createElement('thead', null, 
+                React.createElement('tr', null, [
+                    React.createElement('th', { className: 'text-left pb-2 w-1/2 text-gray-600 text-sm font-medium' }, '기준 텍스트'),
+                    React.createElement('th', { className: 'text-left pb-2 w-1/2 text-gray-600 text-sm font-medium' }, '인식된 텍스트'),
+                ])
+            ),
+            React.createElement('tbody', null, [
+                React.createElement('tr', null, [
+                    // 기준 텍스트 열
+                    React.createElement('td', { 
+                        className: 'align-top pr-4 text-sm border-r border-gray-200',
+                        style: { minHeight: '100px' }
+                    }, 
+                        document.querySelector('.practice-text').textContent.split(' ').map((word, idx) => 
+                            React.createElement('span', {
+                                key: `ref-${idx}`,
+                                className: `inline-block mr-1 px-1 rounded ${
+                                    !nBest.Words.some(w => w.Word.toLowerCase() === word.toLowerCase())
+                                        ? 'bg-red-100 text-red-800'
+                                        : ''
+                                }`
+                            }, word)
+                        )
+                    ),
+                    // 인식된 텍스트 열
+                    React.createElement('td', { 
+                        className: 'align-top pl-4 text-sm',
+                        style: { minHeight: '100px' }
+                    }, 
+                        nBest.Words.map((word, idx) => 
+                            React.createElement('span', {
+                                key: `rec-${idx}`,
+                                className: `inline-block mr-1 px-1 rounded ${
+                                    !document.querySelector('.practice-text').textContent
+                                        .toLowerCase()
+                                        .split(' ')
+                                        .includes(word.Word.toLowerCase())
+                                            ? 'bg-yellow-100 text-yellow-800'
+                                            : ''
+                                }`
+                            }, word.Word)
+                        )
+                    )
                 ])
             ])
+        ]),
+        // 범례
+        React.createElement('div', { className: 'flex gap-4 mt-3 text-sm' }, [
+            React.createElement('div', { className: 'flex items-center' }, [
+                React.createElement('span', { 
+                    className: 'inline-block w-3 h-3 mr-2 bg-red-100 border border-red-200 rounded'
+                }),
+                React.createElement('span', { className: 'text-gray-600' }, '생략된 단어')
+            ]),
+            React.createElement('div', { className: 'flex items-center' }, [
+                React.createElement('span', { 
+                    className: 'inline-block w-3 h-3 mr-2 bg-yellow-100 border border-yellow-200 rounded'
+                }),
+                React.createElement('span', { className: 'text-gray-600' }, '추가된 단어')
+            ])
         ])
-    ]),
+    ])
+])
                                 React.createElement('div', { className: 'space-y-4' },
                                     nBest.Words.map((word, index) => {
                                         const fluencyScore = word.PronunciationAssessment?.FluencyScore || 
