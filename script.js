@@ -376,13 +376,22 @@ async function startRecording() {
         const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
             referenceText,
             SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
-            SpeechSDK.PronunciationAssessmentGranularity.Phoneme,
+            SpeechSDK.PronunciationAssessmentGranularity.word,
             true // Enable mispronunciation calculation
         );
 
         // 추가 설정
 pronunciationAssessmentConfig.enableProsodyAssessment = true;
 pronunciationAssessmentConfig.enableDetailedResultOutput = true;
+
+// 새로운 설정 추가
+pronunciationAssessmentConfig.enableMiscue = true;  // 생략/추가 단어 감지 활성화
+pronunciationAssessmentConfig.nBestPhonemeCount = 5;  // 더 자세한 음소 분석
+pronunciationAssessmentConfig.enablePreLearnedPronunciation = false;  // 사전 학습된 발음 비활성화
+
+// completeness 계산을 위한 기준 설정
+speechConfig.setProperty("pronunciation.completeness.minwordcount", "0");
+speechConfig.setProperty("pronunciation.completeness.wordcountadjustment", "exact");
 
 // JSON 형식 설정
 speechConfig.outputFormat = SpeechSDK.OutputFormat.Detailed;
