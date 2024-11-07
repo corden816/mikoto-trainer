@@ -509,30 +509,35 @@ function analyzePronunciation(pronunciationResult) {
             let feedbackText = `인식된 텍스트: ${pronunciationResult.recognizedText}\n\n`;
             
 // JSON 파싱 시도
-if (pronunciationResult.privJson) {
-    const assessmentJson = JSON.parse(pronunciationResult.privJson);
-    console.log("Detailed assessment JSON:", {
-        full: assessmentJson,
-        words: assessmentJson.NBest?.[0]?.Words,
-        wordDetails: assessmentJson.NBest?.[0]?.Words?.map(word => ({
-            word: word.Word,
-            assessment: word.PronunciationAssessment,
-            phonemes: word.Phonemes
-        }))
-    });
+    if (pronunciationResult.privJson) {
+        const assessmentJson = JSON.parse(pronunciationResult.privJson);
+        console.log("Detailed assessment JSON:", {
+            full: assessmentJson,
+            words: assessmentJson.NBest?.[0]?.Words,
+            wordDetails: assessmentJson.NBest?.[0]?.Words?.map(word => ({
+                word: word.Word,
+                assessment: word.PronunciationAssessment,
+                phonemes: word.Phonemes,
+                // 새로운 fluency 점수 계산 로직 추가
+                fluencyScore: word.PronunciationAssessment?.FluencyScore || 
+                            (word.PronunciationAssessment?.AccuracyScore * 0.7 + 
+                             pronunciationResult.fluencyScore * 0.3)
+            }))
+        });
 
     if (assessmentJson.NBest && Array.isArray(assessmentJson.NBest)) {
         const nBest = assessmentJson.NBest[0];
         if (nBest.Words && Array.isArray(nBest.Words)) {
-            // React 컴포넌트 정의
-            const PronunciationVisualizer = () => {
-                const getScoreColor = (score) => {
-                    if (score >= 80) return 'bg-green-500';
-                    if (score >= 60) return 'bg-yellow-500';
-                    return 'bg-red-500';
-                };
-
-                return React.createElement('div', { className: 'w-full max-w-4xl mx-auto p-6 bg-white rounded-lg' }, [
+                // React 컴포넌트의 단어별 분석 섹션 수정
+                nBest.Words.map((word, index) => {
+                    const fluencyScore = word.PronunciationAssessment?.FluencyScore || 
+                                      (word.PronunciationAssessment?.AccuracyScore * 0.7 + 
+                                       pronunciationResult.fluencyScore * 0.3);
+                    
+                    return React.createElement('div', {
+                        key: index,
+                        className: 'bg-gray-50 p-4 rounded-lg'
+                    }, [
                     // 전체 점수 섹션
                     React.createElement('div', { className: 'mb-8' }, [
                         React.createElement('h2', { className: 'text-xl font-bold mb-4' }, '전체 평가'),
