@@ -634,7 +634,7 @@ React.createElement('div', { className: 'mb-8 p-4 bg-gray-50 rounded-lg' }, [
             ])
         ])
     ])
-])
+]),
 
         // 3. 단어별 분석 섹션
         React.createElement('div', { className: 'mt-8' }, [
