@@ -646,17 +646,26 @@ if (pronunciationResult.privJson) {
                 ]);
             };
 
-            // React 컴포넌트 렌더링
-            const root = document.getElementById('pronunciationVisualizer');
-            if (root) {
-                ReactDOM.render(React.createElement(PronunciationVisualizer), root);
+                        // React 컴포넌트 렌더링
+                        const root = document.getElementById('pronunciationVisualizer');
+                        if (root) {
+                            ReactDOM.render(React.createElement(PronunciationVisualizer), root);
+                        }
+                    }
+                }
             }
+
+            feedbackElement.textContent = feedbackText;
+
+            // 여기에서 `feedbackElement` 조건문을 닫습니다.
         }
+
+        // 여기에서 `try` 블록을 닫습니다.
+    } catch (error) {
+        console.error("Error analyzing pronunciation:", error);
+        console.error("Error details:", error.stack);
     }
 
-    feedbackElement.textContent = feedbackText;
-}
- 
     // pitchAnalyzer 결과 표시
     pitchAnalyzer.displayResults();
     pitchAnalyzer.reset();
