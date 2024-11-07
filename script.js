@@ -562,6 +562,40 @@ function analyzePronunciation(pronunciationResult) {
                             // 단어별 분석 섹션
                             React.createElement('div', { className: 'mt-8' }, [
                                 React.createElement('h2', { className: 'text-xl font-bold mb-4' }, '단어별 분석'),
+                                React.createElement('div', { className: 'mb-4 p-4 bg-gray-50 rounded-lg' }, [
+        React.createElement('h3', { className: 'text-lg font-semibold mb-2' }, '텍스트 비교'),
+        React.createElement('div', { className: 'space-y-2' }, [
+            React.createElement('div', { className: 'text-sm' }, [
+                React.createElement('span', { className: 'font-medium text-gray-700' }, '기준 텍스트: '),
+                React.createElement('span', { className: 'text-gray-900' }, 
+                    document.querySelector('.practice-text').textContent
+                )
+            ]),
+            React.createElement('div', { className: 'text-sm' }, [
+                React.createElement('span', { className: 'font-medium text-gray-700' }, '인식된 텍스트: '),
+                ...nBest.Words.map((word, idx) => 
+                    React.createElement('span', {
+                        key: idx,
+                        className: `mx-0.5 ${
+                            word.OmittedInReference ? 'text-orange-500' :  // 참조 텍스트에 없는 추가된 단어
+                            word.OmittedInRecognized ? 'text-gray-400' :   // 참조 텍스트에는 있지만 발화되지 않은 단어
+                            'text-gray-900'                                // 정상적으로 인식된 단어
+                        }`
+                    }, word.Word)
+                )
+            ]),
+            React.createElement('div', { className: 'text-xs mt-1' }, [
+                React.createElement('span', { className: 'inline-block mr-4' }, [
+                    React.createElement('span', { className: 'text-orange-500' }, '■'),
+                    ' 추가된 단어'
+                ]),
+                React.createElement('span', { className: 'inline-block' }, [
+                    React.createElement('span', { className: 'text-gray-400' }, '■'),
+                    ' 생략된 단어'
+                ])
+            ])
+        ])
+    ]),
                                 React.createElement('div', { className: 'space-y-4' },
                                     nBest.Words.map((word, index) => {
                                         const fluencyScore = word.PronunciationAssessment?.FluencyScore || 
