@@ -562,14 +562,15 @@ const PronunciationVisualizer = () => {
 
         // 2. 텍스트 비교 분석 섹션
         // 텍스트 비교 분석 섹션만 수정
+        //기준텍스트를 예문으로 인식된 텍스트를 당신의 발음으로 이름 변경
 React.createElement('div', { className: 'mb-8 p-4 bg-gray-50 rounded-lg' }, [
     React.createElement('h3', { className: 'text-lg font-semibold mb-3' }, '텍스트 비교 분석'),
     React.createElement('div', { className: 'space-y-4' }, [
         React.createElement('table', { className: 'w-full border-collapse' }, [
             React.createElement('thead', null, 
                 React.createElement('tr', null, [
-                    React.createElement('th', { className: 'text-left pb-2 w-1/2 text-gray-600 text-sm font-medium' }, '기준 텍스트'),
-                    React.createElement('th', { className: 'text-left pb-2 w-1/2 text-gray-600 text-sm font-medium' }, '인식된 텍스트')
+                    React.createElement('th', { className: 'text-left pb-2 w-1/2 text-gray-600 text-sm font-medium' }, '예문'),
+                    React.createElement('th', { className: 'text-left pb-2 w-1/2 text-gray-600 text-sm font-medium' }, '당신의 발음')
                 ])
             ),
             React.createElement('tbody', null, [
