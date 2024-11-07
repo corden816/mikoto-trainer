@@ -574,36 +574,43 @@ const PronunciationVisualizer = () => {
                     React.createElement('tbody', null, [
                         React.createElement('tr', null, [
                             React.createElement('td', { 
-                                className: 'align-top pr-4 text-sm border-r border-gray-200',
-                                style: { minHeight: '100px' }
-                            }, 
-                                document.querySelector('.practice-text').textContent.split(' ').map((word, idx) => 
-                                    React.createElement('span', {
-                                        key: `ref-${idx}`,
-                                        className: `inline-block mr-1 px-1 rounded ${
-                                            !nBest.Words.some(w => w.Word.toLowerCase() === word.toLowerCase())
-                                                ? 'bg-red-100 text-red-800'
-                                                : ''
-                                        }`
-                                    }, word)
-                                )
-                            ),
-                            React.createElement('td', { 
-                                className: 'align-top pl-4 text-sm',
-                                style: { minHeight: '100px' }
-                            }, 
-                                nBest.Words.map((word, idx) => 
-                                    React.createElement('span', {
-                                        key: `rec-${idx}`,
-                                        className: `inline-block mr-1 px-1 rounded ${
-                                            !document.querySelector('.practice-text').textContent
-                                                .toLowerCase()
-                                                .split(' ')
-                                                .includes(word.Word.toLowerCase())
-                                                    ? 'bg-yellow-100 text-yellow-800'
-                                                    : ''
-                                        }`
-                                    }, word.Word)
+    className: 'align-top pr-4 text-sm border-r border-gray-200',
+    style: { minHeight: '100px' }
+}, 
+    document.querySelector('.practice-text').textContent.split(' ').map((word, idx) => {
+        // 단어에서 온점과 쉼표 제거 (비교용)
+        const cleanWord = word.replace(/[.,!?]$/, '');
+        
+        return React.createElement('span', {
+            key: `ref-${idx}`,
+            className: `inline-block mr-1 px-1 rounded ${
+                !nBest.Words.some(w => 
+                    w.Word.toLowerCase().replace(/[.,!?]$/, '') === cleanWord.toLowerCase()
+                ) ? 'bg-red-100 text-red-800' : ''
+            }`
+        }, word) // 표시할 때는 원래 단어 사용
+    })
+),
+React.createElement('td', { 
+    className: 'align-top pl-4 text-sm',
+    style: { minHeight: '100px' }
+}, 
+    nBest.Words.map((word, idx) => {
+        // 단어에서 온점과 쉼표 제거 (비교용)
+        const cleanWord = word.Word.replace(/[.,!?]$/, '');
+        
+        return React.createElement('span', {
+            key: `rec-${idx}`,
+            className: `inline-block mr-1 px-1 rounded ${
+                !document.querySelector('.practice-text').textContent
+                    .toLowerCase()
+                    .split(' ')
+                    .map(w => w.replace(/[.,!?]$/, ''))
+                    .includes(cleanWord.toLowerCase())
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : ''
+            }`
+        }, word.Word) // 표시할 때는 원래 단어 사용
                                 )
                             )
                         ])
