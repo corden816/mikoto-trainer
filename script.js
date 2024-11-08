@@ -428,7 +428,7 @@ recognizer.recognized = (s, e) => {
         isRecording = true;
         document.getElementById('startRecording').disabled = true;
         document.getElementById('stopRecording').disabled = false;
-        document.getElementById('status').textContent = '녹음중...지금 말하세요!';
+        document.getElementById('status').textContent = '녹음 중...지금 말하세요!';
 
         // 녹음 시작
         recognizer.startContinuousRecognitionAsync(
