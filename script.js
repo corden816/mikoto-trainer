@@ -769,7 +769,7 @@ function analyzePronunciation(pronunciationResult) {
                                         word.Phonemes.filter(p => p.PronunciationAssessment && 
                                                               p.PronunciationAssessment.AccuracyScore < 80).length > 1 ? 's' : ''
                                     }` :
-                                    '전반적인 발음 개선이 필요합니다'
+                                    '전반적인 발음 개선이 필요합니다. 표시된 음소의 발음을 좀 더 신경써보세요.'
                             ])
                         )
                     ]);
