@@ -510,7 +510,7 @@ function analyzePronunciation(pronunciationResult) {
             let feedbackText = `인식된 텍스트: ${pronunciationResult.recognizedText}\n\n`;
             feedbackElement.textContent = feedbackText;
         }
-        
+
         // JSON 파싱 시도
         if (pronunciationResult.privJson) {
             const assessmentJson = JSON.parse(pronunciationResult.privJson);
@@ -525,100 +525,58 @@ function analyzePronunciation(pronunciationResult) {
             });
 
             if (assessmentJson.NBest && Array.isArray(assessmentJson.NBest)) {
+                const nBest = assessmentJson.NBest[0]; // nBest 변수 선언 추가
                 const PronunciationVisualizer = () => {
-    const getScoreColor = (score) => {
-        if (score >= 80) return 'bg-green-500';
-        if (score >= 60) return 'bg-yellow-500';
-        return 'bg-red-500';
-    };
+                    // 여기서부터 PronunciationVisualizer 함수 내용 작성
+                    const getScoreColor = (score) => {
+                        if (score >= 80) return 'bg-green-500';
+                        if (score >= 60) return 'bg-yellow-500';
+                        return 'bg-red-500';
+                    };
 
-    const compareWords = (referenceText, recognizedWords) => {
-        // 기준 텍스트를 단어 배열로 변환하고 전처리
-        const referenceWords = referenceText
-            .toLowerCase()
-            .split(' ')
-            .map(word => word.replace(/[.,!?]$/g, ''))
-            .filter(word => word.length > 0);
+                    const compareWords = (referenceText, recognizedWords) => {
+                        // compareWords 함수 내용
+                    };
 
-        // 인식된 텍스트를 단어 배열로 변환하고 전처리
-        const recognizedWordsList = recognizedWords.map(wordObj => 
-            wordObj.Word.toLowerCase().replace(/[.,!?]$/g, '')
-        );
+                    // 기준 텍스트와 인식된 단어 목록 가져오기
+                    const referenceText = document.querySelector('.practice-text')?.textContent || '';
+                    const { referenceStatus, recognizedStatus, calculatedCompleteness } = compareWords(
+                        referenceText,
+                        nBest.Words
+                    );
 
-        // 각 단어의 출현 횟수를 카운트
-        const wordCount = {};
-        const recognizedCount = {};
+                    // Azure의 완결성 점수와 계산된 완결성 점수 중 더 낮은 값 사용
+                    const azureCompleteness = pronunciationResult.completenessScore;
+                    const finalCompleteness = Math.min(calculatedCompleteness, azureCompleteness);
 
-        // 기준 텍스트의 단어 출현 횟수 계산
-        referenceWords.forEach(word => {
-            wordCount[word] = (wordCount[word] || 0) + 1;
-        });
+                    console.log('Completeness Scores:', {
+                        calculated: calculatedCompleteness,
+                        azure: azureCompleteness,
+                        final: finalCompleteness
+                    });
 
-        // 인식된 텍스트의 단어 출현 횟수 계산
-        recognizedWordsList.forEach(word => {
-            recognizedCount[word] = (recognizedCount[word] || 0) + 1;
-        });
+                    return React.createElement('div', { className: 'w-full max-w-4xl mx-auto p-6 bg-white rounded-lg' }, [
+                        // PronunciationVisualizer의 나머지 내용
+                    ]);
+                };
 
-        // 각 단어의 상태를 저장할 객체 생성
-        const referenceStatus = referenceWords.map((word, index) => {
-            // 해당 단어가 이전에 몇 번 나왔는지 계산
-            const previousOccurrences = referenceWords
-                .slice(0, index)
-                .filter(w => w === word).length;
-            
-            // 인식된 텍스트에서 해당 단어의 출현 횟수 확인
-            const recognizedOccurrences = recognizedCount[word] || 0;
-            
-            // 이 위치의 단어가 생략되었는지 확인
-            const isOmitted = previousOccurrences >= recognizedOccurrences;
+                // React 컴포넌트 렌더링
+                const root = document.getElementById('pronunciationVisualizer');
+                if (root) {
+                    ReactDOM.render(React.createElement(PronunciationVisualizer), root);
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Error analyzing pronunciation:", error);
+        console.error("Error details:", error.stack);
+    }
 
-            return {
-                word,
-                isOmitted
-            };
-        });
+    // pitchAnalyzer 결과 표시
+    pitchAnalyzer.displayResults();
+    pitchAnalyzer.reset();
+}
 
-        const recognizedStatus = recognizedWords.map(wordObj => {
-            const normalizedWord = wordObj.Word.toLowerCase().replace(/[.,!?]$/g, '');
-            const isAdded = !wordCount[normalizedWord] || 
-                           recognizedCount[normalizedWord] > wordCount[normalizedWord];
-
-            return {
-                ...wordObj,
-                isAdded
-            };
-        });
-
-        // 완결성 점수 계산
-        const totalWords = referenceWords.length;
-        const omittedWords = referenceStatus.filter(w => w.isOmitted).length;
-        const completenessScore = Math.max(0, Math.min(100, ((totalWords - omittedWords) / totalWords) * 100));
-
-        return { 
-            referenceStatus, 
-            recognizedStatus, 
-            calculatedCompleteness: completenessScore 
-        };
-    };
-
-    // 기준 텍스트와 인식된 단어 목록 가져오기
-    const referenceText = document.querySelector('.practice-text')?.textContent || '';
-    const { referenceStatus, recognizedStatus, calculatedCompleteness } = compareWords(
-        referenceText,
-        nBest.Words
-    );
-
-    // Azure의 완결성 점수와 계산된 완결성 점수 중 더 낮은 값 사용
-    const azureCompleteness = pronunciationResult.completenessScore;
-    const finalCompleteness = Math.min(calculatedCompleteness, azureCompleteness);
-
-    console.log('Completeness Scores:', {
-        calculated: calculatedCompleteness,
-        azure: azureCompleteness,
-        final: finalCompleteness
-    });
-
-    return React.createElement('div', { className: 'w-full max-w-4xl mx-auto p-6 bg-white rounded-lg' }, [
         // 1. 전체 점수 섹션
         React.createElement('div', { className: 'mb-8' }, [
             React.createElement('h2', { className: 'text-xl font-bold mb-4' }, '전체 평가'),
