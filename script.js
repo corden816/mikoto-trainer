@@ -492,22 +492,6 @@ function analyzePronunciation(pronunciationResult) {
         return;
     }
 
-    // 기본 점수 표시
-    const scoreElement = document.getElementById('pronunciationScore');
-    if (scoreElement) {
-        scoreElement.textContent = `발음 점수: ${pronunciationResult.pronunciationScore.toFixed(1)}
-정확성: ${pronunciationResult.accuracyScore.toFixed(1)}
-유창성: ${pronunciationResult.fluencyScore.toFixed(1)}
-완결성: ${pronunciationResult.completenessScore.toFixed(1)}`;
-    }
-
-    try {
-        // 인식된 텍스트 표시
-        const feedbackElement = document.getElementById('feedback');
-        if (feedbackElement) {
-            let feedbackText = `인식된 텍스트: ${pronunciationResult.recognizedText}\n\n`;
-            feedbackElement.textContent = feedbackText;
-        }
 
         // JSON 파싱 시도
         if (pronunciationResult.privJson) {
