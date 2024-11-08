@@ -15,17 +15,17 @@ let animationFrameId;
 let userDataInterval;
 
 // 스타일 적용 함수 - analyzePronunciation 함수 밖으로 이동
-function applyStylesToFeedback() {
-    const feedbackElement = document.getElementById('feedback');
-    if (feedbackElement) {
-        feedbackElement.style.whiteSpace = 'pre-wrap';
-        feedbackElement.style.fontFamily = 'monospace';
-        feedbackElement.style.padding = '15px';
-        feedbackElement.style.borderRadius = '5px';
-        feedbackElement.style.backgroundColor = '#f8f9fa';
-        feedbackElement.style.border = '1px solid #dee2e6';
-    }
-}
+//function applyStylesToFeedback() {
+    //const feedbackElement = document.getElementById('feedback');
+    //if (feedbackElement) {
+        //feedbackElement.style.whiteSpace = 'pre-wrap';
+        //feedbackElement.style.fontFamily = 'monospace';
+        //feedbackElement.style.padding = '15px';
+        //feedbackElement.style.borderRadius = '5px';
+        //feedbackElement.style.backgroundColor = '#f8f9fa';
+        //feedbackElement.style.border = '1px solid #dee2e6';
+    //}
+//}
 
 let pitchAnalyzer = {
     nativePitchData: [],
@@ -137,20 +137,20 @@ let pitchAnalyzer = {
         console.log('User Pitch Data Length:', this.userPitchData.length);
 
         const similarity = this.calculateSimilarity();
-        const feedbackElement = document.getElementById('feedback');
+        //const feedbackElement = document.getElementById('feedback');
 
-        if (feedbackElement) {
-            let currentFeedback = feedbackElement.textContent;
-            feedbackElement.textContent = currentFeedback + `\n\n억양 유사도: ${similarity.toFixed(1)}%\n`;
+        //if (feedbackElement) {
+            //let currentFeedback = feedbackElement.textContent;
+            //feedbackElement.textContent = currentFeedback + `\n\n억양 유사도: ${similarity.toFixed(1)}%\n`;
 
-            if (similarity >= 80) {
-                feedbackElement.textContent += "훌륭합니다! 원어민과 매우 비슷한 억양입니다.";
-            } else if (similarity >= 60) {
-                feedbackElement.textContent += "좋습니다. 억양이 꽤 자연스럽습니다.";
-            } else {
-                feedbackElement.textContent += "원어민 음성을 다시 들어보고 억양에 더 신경써보세요.";
-            }
-        }
+            //if (similarity >= 80) {
+                //feedbackElement.textContent += "훌륭합니다! 원어민과 매우 비슷한 억양입니다.";
+            //} else if (similarity >= 60) {
+                //feedbackElement.textContent += "좋습니다. 억양이 꽤 자연스럽습니다.";
+            //} else {
+                //feedbackElement.textContent += "원어민 음성을 다시 들어보고 억양에 더 신경써보세요.";
+            //}
+        //}
     },
 
     reset() {
@@ -792,7 +792,7 @@ function analyzePronunciation(pronunciationResult) {
     }
 
     // pitchAnalyzer 결과 표시
-    pitchAnalyzer.displayResults();
+    //pitchAnalyzer.displayResults();
     pitchAnalyzer.reset();
 } // analyzePronunciation 함수의 끝
 
