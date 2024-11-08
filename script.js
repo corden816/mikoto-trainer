@@ -534,33 +534,37 @@ function analyzePronunciation(pronunciationResult) {
                             return 'bg-red-500';
                         };
 
-                        const compareWords = (referenceText, recognizedWords) => {
-                            // 기준 텍스트를 단어 배열로 변환하고 전처리
-                            const referenceWords = referenceText
-                                .toLowerCase()
-                                .split(' ')
-                                .map(word => word.replace(/[.,!?]$/g, ''));
+                        cconst compareWords = (referenceText, recognizedWords) => {
+    // 기준 텍스트를 단어 배열로 변환하고 전처리
+    const referenceWords = referenceText
+        .toLowerCase()
+        .split(' ')
+        .map(word => word.replace(/[.,!?]$/g, ''))
+        .filter(word => word.length > 0); // 빈 문자열 제거
 
-                            // 인식된 텍스트를 단어 배열로 변환하고 전처리
-                            const recognizedWordsList = recognizedWords.map(wordObj => 
-                                wordObj.Word.toLowerCase().replace(/[.,!?]$/g, '')
-                            );
+    // 인식된 텍스트를 단어 배열로 변환하고 전처리
+    const recognizedWordsList = recognizedWords.map(wordObj => ({
+        original: wordObj.Word,
+        normalized: wordObj.Word.toLowerCase().replace(/[.,!?]$/g, '')
+    }));
 
-                            // 각 단어의 상태를 저장할 객체 생성
-                            const referenceStatus = referenceWords.map(word => ({
-                                word: word,
-                                isOmitted: !recognizedWordsList.includes(word)
-                            }));
+    // 각 단어의 상태를 저장할 객체 생성
+    const referenceStatus = referenceWords.map(word => ({
+        word: word,
+        isOmitted: !recognizedWordsList.some(w => w.normalized === word)
+    }));
 
-                            const recognizedStatus = recognizedWords.map(wordObj => ({
-                                ...wordObj,
-                                isAdded: !referenceWords.includes(
-                                    wordObj.Word.toLowerCase().replace(/[.,!?]$/g, '')
-                                )
-                            }));
+    const recognizedStatus = recognizedWordsList.map(wordObj => ({
+        Word: wordObj.original,
+        isAdded: !referenceWords.includes(wordObj.normalized)
+    }));
 
-                            return { referenceStatus, recognizedStatus };
-                        };
+    console.log('Reference Words:', referenceWords);
+    console.log('Recognized Words:', recognizedWordsList.map(w => w.normalized));
+    console.log('Added Words:', recognizedStatus.filter(w => w.isAdded).map(w => w.Word));
+
+    return { referenceStatus, recognizedStatus };
+};
 
                         // 기준 텍스트와 인식된 단어 목록 가져오기
                         const referenceText = document.querySelector('.practice-text')?.textContent || '';
