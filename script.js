@@ -540,32 +540,59 @@ function analyzePronunciation(pronunciationResult) {
         .toLowerCase()
         .split(' ')
         .map(word => word.replace(/[.,!?]$/g, ''))
-        .filter(word => word.length > 0); // 빈 문자열 제거
+        .filter(word => word.length > 0);
 
     // 인식된 텍스트를 단어 배열로 변환하고 전처리
-    const recognizedWordsList = recognizedWords.map(wordObj => ({
-        original: wordObj.Word,
-        normalized: wordObj.Word.toLowerCase().replace(/[.,!?]$/g, '')
-    }));
+    const recognizedWordsList = recognizedWords.map(wordObj => 
+        wordObj.Word.toLowerCase().replace(/[.,!?]$/g, '')
+    );
+
+    // 각 단어의 출현 횟수를 카운트
+    const wordCount = {};
+    const recognizedCount = {};
+
+    // 기준 텍스트의 단어 출현 횟수 계산
+    referenceWords.forEach(word => {
+        wordCount[word] = (wordCount[word] || 0) + 1;
+    });
+
+    // 인식된 텍스트의 단어 출현 횟수 계산
+    recognizedWordsList.forEach(word => {
+        recognizedCount[word] = (recognizedCount[word] || 0) + 1;
+    });
 
     // 각 단어의 상태를 저장할 객체 생성
-    const referenceStatus = referenceWords.map(word => ({
-        word: word,
-        isOmitted: !recognizedWordsList.some(w => w.normalized === word)
-    }));
+    const referenceStatus = referenceWords.map((word, index) => {
+        // 해당 단어가 이전에 몇 번 나왔는지 계산
+        const previousOccurrences = referenceWords
+            .slice(0, index)
+            .filter(w => w === word).length;
+        
+        // 인식된 텍스트에서 해당 단어의 출현 횟수 확인
+        const recognizedOccurrences = recognizedCount[word] || 0;
+        
+        // 이 위치의 단어가 생략되었는지 확인
+        const isOmitted = previousOccurrences >= recognizedOccurrences;
 
-    const recognizedStatus = recognizedWordsList.map(wordObj => ({
-        Word: wordObj.original,
-        isAdded: !referenceWords.includes(wordObj.normalized)
-    }));
+        return {
+            word,
+            isOmitted
+        };
+    });
 
-    console.log('Reference Words:', referenceWords);
-    console.log('Recognized Words:', recognizedWordsList.map(w => w.normalized));
-    console.log('Added Words:', recognizedStatus.filter(w => w.isAdded).map(w => w.Word));
+    const recognizedStatus = recognizedWords.map(wordObj => {
+        const normalizedWord = wordObj.Word.toLowerCase().replace(/[.,!?]$/g, '');
+        const isAdded = !wordCount[normalizedWord] || 
+                       recognizedCount[normalizedWord] > wordCount[normalizedWord];
+
+        return {
+            ...wordObj,
+            isAdded
+        };
+    });
 
     return { referenceStatus, recognizedStatus };
 };
-
                         // 기준 텍스트와 인식된 단어 목록 가져오기
                         const referenceText = document.querySelector('.practice-text')?.textContent || '';
                         const { referenceStatus, recognizedStatus } = compareWords(
