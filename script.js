@@ -534,7 +534,7 @@ function analyzePronunciation(pronunciationResult) {
                             return 'bg-red-500';
                         };
 
-                        cconst compareWords = (referenceText, recognizedWords) => {
+                        const compareWords = (referenceText, recognizedWords) => {
     // 기준 텍스트를 단어 배열로 변환하고 전처리
     const referenceWords = referenceText
         .toLowerCase()
