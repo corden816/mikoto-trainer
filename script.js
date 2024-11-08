@@ -428,7 +428,7 @@ recognizer.recognized = (s, e) => {
         isRecording = true;
         document.getElementById('startRecording').disabled = true;
         document.getElementById('stopRecording').disabled = false;
-        document.getElementById('status').textContent = 'Recording... Speak now!';
+        document.getElementById('status').textContent = '녹음중...지금 말하세요!';
 
         // 녹음 시작
         recognizer.startContinuousRecognitionAsync(
@@ -458,7 +458,7 @@ function stopRecording() {
                     clearInterval(userDataInterval);
                 }
                 console.log('Recognition stopped');
-                document.getElementById('status').textContent = 'Recording stopped';
+                document.getElementById('status').textContent = '녹음 중지됨';
                 isRecording = false;
                 document.getElementById('startRecording').disabled = false;
                 document.getElementById('stopRecording').disabled = true;
