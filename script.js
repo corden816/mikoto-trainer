@@ -482,9 +482,7 @@ function stopRecording() {
     }
 }
 
-// 발음 분석 - 개선된 버전
-// 발음 분석
-// 발음 분석 함수 수정
+
 // analyzePronunciation 함수를 다음과 같이 교체하세요
 function analyzePronunciation(pronunciationResult) {
     console.log("Starting pronunciation analysis with:", pronunciationResult);
@@ -494,16 +492,16 @@ function analyzePronunciation(pronunciationResult) {
         return;
     }
 
-    try {
-        // 기본 점수 표시
-        const scoreElement = document.getElementById('pronunciationScore');
-        if (scoreElement) {
-            scoreElement.textContent = `발음 점수: ${pronunciationResult.pronunciationScore.toFixed(1)}
+    // 기본 점수 표시
+    const scoreElement = document.getElementById('pronunciationScore');
+    if (scoreElement) {
+        scoreElement.textContent = `발음 점수: ${pronunciationResult.pronunciationScore.toFixed(1)}
 정확성: ${pronunciationResult.accuracyScore.toFixed(1)}
 유창성: ${pronunciationResult.fluencyScore.toFixed(1)}
 완결성: ${pronunciationResult.completenessScore.toFixed(1)}`;
-        }
+    }
 
+    try {
         // 인식된 텍스트 표시
         const feedbackElement = document.getElementById('feedback');
         if (feedbackElement) {
@@ -512,29 +510,21 @@ function analyzePronunciation(pronunciationResult) {
         }
 
         // JSON 파싱 시도
-        if (!pronunciationResult.privJson) {
-            throw new Error('No JSON result available');
-        }
+        if (pronunciationResult.privJson) {
+            const assessmentJson = JSON.parse(pronunciationResult.privJson);
+            console.log("Detailed assessment JSON:", {
+                full: assessmentJson,
+                words: assessmentJson.NBest?.[0]?.Words,
+                wordDetails: assessmentJson.NBest?.[0]?.Words?.map(word => ({
+                    word: word.Word,
+                    assessment: word.PronunciationAssessment,
+                    phonemes: word.Phonemes
+                }))
+            });
 
-        const assessmentJson = JSON.parse(pronunciationResult.privJson);
-        console.log("Detailed assessment JSON:", {
-            full: assessmentJson,
-            words: assessmentJson.NBest?.[0]?.Words,
-            wordDetails: assessmentJson.NBest?.[0]?.Words?.map(word => ({
-                word: word.Word,
-                assessment: word.PronunciationAssessment,
-                phonemes: word.Phonemes
-            }))
-        });
-
-        if (!assessmentJson.NBest || !Array.isArray(assessmentJson.NBest) || !assessmentJson.NBest[0]) {
-            throw new Error('Invalid assessment JSON structure');
-        }
-
-        const nBest = assessmentJson.NBest[0];
-
-        // PronunciationVisualizer 컴포넌트 정의
-        const PronunciationVisualizer = () => {
+            if (assessmentJson.NBest && Array.isArray(assessmentJson.NBest)) {
+                const nBest = assessmentJson.NBest[0];
+                const PronunciationVisualizer = () => {
     const getScoreColor = (score) => {
         if (score >= 80) return 'bg-green-500';
         if (score >= 60) return 'bg-yellow-500';
@@ -627,7 +617,9 @@ function analyzePronunciation(pronunciationResult) {
         final: finalCompleteness
     });
 
-    return React.createElement('div', { className: 'w-full max-w-4xl mx-auto p-6 bg-white rounded-lg' }, [
+    return React.createElement('div', {
+                        className: 'w-full max-w-4xl mx-auto p-6 bg-white rounded-lg'
+                    }, [
         // 1. 전체 점수 섹션
         React.createElement('div', { className: 'mb-8' }, [
             React.createElement('h2', { className: 'text-xl font-bold mb-4' }, '전체 평가'),
@@ -799,27 +791,22 @@ function analyzePronunciation(pronunciationResult) {
     ]);
 };
 
-                    /// React 컴포넌트 렌더링
-        const root = document.getElementById('pronunciationVisualizer');
-        if (root) {
-            ReactDOM.render(React.createElement(PronunciationVisualizer), root);
+                    // React 컴포넌트 렌더링
+                const root = document.getElementById('pronunciationVisualizer');
+                if (root) {
+                    ReactDOM.render(React.createElement(PronunciationVisualizer), root);
+                }
+            }
         }
-
-        // pitchAnalyzer 결과 표시
-        pitchAnalyzer.displayResults();
-        pitchAnalyzer.reset();
-
     } catch (error) {
         console.error("Error analyzing pronunciation:", error);
         console.error("Error details:", error.stack);
     }
-}
+
     // pitchAnalyzer 결과 표시
     pitchAnalyzer.displayResults();
     pitchAnalyzer.reset();
-}
-
-
+} // analyzePronunciation 함수의 끝
 
 
 function changeSample(sampleNumber) {
