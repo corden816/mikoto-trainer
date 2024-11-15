@@ -312,12 +312,16 @@ let pitchAnalyzer = {
 };
 
 // 샘플 텍스트
-const window.sampleTexts = {
+window.sampleTexts = {
     1: `Here's everything you need to know about the new McDonald's app. It's all the things you love about McDonald's at your fingertips.`,
     2: `御坂美琴ほんとに素晴らし力だね?`,
     3: `Whenever you walk along the street of small town of Sasebo, Japan, you will notice the long waiting line in front of the hamburger house. And looking around, you will find so many more hamburger places along the street. Then you might be thinking, why hamburger is so popular here? It's even a Japan.
 
 The hidden story of Sasebo hamburger is back to 1940's. During the World War 2, Sasebo was IJN's one of the biggest naval base. Several shipyards and factories for supply were located there. But after the war, the entire facilities were under controll of US navy, and Sasebo city becomes essential supply base for US navy pacific fleet. During the Korean War, more than 20,000 troops were sent to the base for operation.`
+  
+  4: `this is sample text 4`,
+  
+  5: `this is sample text 5`,
 };
 
 // Azure Speech SDK 초기화
@@ -977,6 +981,7 @@ function initMobileSupport() {
     document.addEventListener('click', unlockAudioContext);
 }
 
+// DOMContentLoaded 이벤트 리스너 수정
 document.addEventListener('DOMContentLoaded', async () => {
     const loadingScreen = document.getElementById('loadingScreen');
     
