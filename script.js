@@ -1,4 +1,156 @@
-// 전역 변수
+import React, { useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
+
+const App = () => {
+  const [currentPage, setCurrentPage] = useState('selection');
+  const [selectedSample, setSelectedSample] = useState(1);
+  
+  // 실제 예문 텍스트
+  const sampleTexts = {
+    1: `Here's everything you need to know about the new McDonald's app. It's all the things you love about McDonald's at your fingertips.`,
+    2: `御坂美琴ほんとに素晴らし力だね?`,
+    3: `Whenever you walk along the street of small town of Sasebo, Japan, you will notice the long waiting line in front of the hamburger house. And looking around, you will find so many more hamburger places along the street. Then you might be thinking, why hamburger is so popular here? It's even a Japan.
+
+The hidden story of Sasebo hamburger is back to 1940's. During the World War 2, Sasebo was IJN's one of the biggest naval base. Several shipyards and factories for supply were located there. But after the war, the entire facilities were under controll of US navy, and Sasebo city becomes essential supply base for US navy pacific fleet. During the Korean War, more than 20,000 troops were sent to the base for operation.`,
+    4: `昔々あるところに、おじいさんとおばあさんが住んでいました。おじいさんは山へ芝刈りに、おばあさんは川へ洗濯に行きました。おばあさんが川で洗濯をしていると、大きな桃が流れてきました。`,
+    5: `The latest AI model has shown remarkable improvements in natural language processing. With enhanced algorithms and training data, it can now understand context better than ever before.`
+  };
+  
+  // 카드에 표시될 미리보기 텍스트
+  const samplePreviews = {
+    1: {
+      title: "McDonald's App Introduction",
+      description: "Learn how to introduce a mobile application in English",
+      level: "Beginner"
+    },
+    2: {
+      title: "Japanese Expression",
+      description: "Practice Japanese casual conversation",
+      level: "Intermediate"
+    },
+    3: {
+      title: "Sasebo History",
+      description: "Historical narrative about Sasebo's hamburger culture",
+      level: "Advanced"
+    },
+    4: {
+      title: "Japanese Folklore",
+      description: "Traditional Japanese story telling practice",
+      level: "Advanced"
+    },
+    5: {
+      title: "Technology News",
+      description: "Practice speaking about modern technology",
+      level: "Intermediate"
+    }
+  };
+
+  const handleSampleSelection = (sampleNumber) => {
+    setSelectedSample(sampleNumber);
+    setCurrentPage('practice');
+    // 기존 window.sampleTexts를 업데이트
+    window.sampleTexts = sampleTexts;
+    // 기존 changeSample 함수 호출
+    window.changeSample(sampleNumber);
+  };
+
+  const SelectionPage = () => (
+    <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gray-50">
+      <h1 className="text-3xl font-bold mb-8 text-gray-800">Select a Practice</h1>
+      <div className="grid gap-4 w-full max-w-md">
+        {Object.entries(samplePreviews).map(([number, info]) => (
+          <button
+            key={number}
+            onClick={() => handleSampleSelection(parseInt(number))}
+            className="p-4 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow
+                     border border-gray-200 text-left"
+            data-sample={number}
+          >
+            <div className="flex justify-between items-start mb-2">
+              <h2 className="font-semibold text-gray-700">{info.title}</h2>
+              <span className={`text-xs px-2 py-1 rounded ${
+                info.level === 'Beginner' ? 'bg-green-100 text-green-700' :
+                info.level === 'Intermediate' ? 'bg-blue-100 text-blue-700' :
+                'bg-purple-100 text-purple-700'
+              }`}>
+                {info.level}
+              </span>
+            </div>
+            <p className="text-sm text-gray-600">{info.description}</p>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const PracticePage = () => (
+    <div className="relative min-h-screen bg-gray-50">
+      <button
+        onClick={() => setCurrentPage('selection')}
+        className="absolute top-4 left-4 p-2 flex items-center text-gray-600 hover:text-gray-800"
+      >
+        <ArrowLeft className="w-5 h-5 mr-1" />
+        <span>Back</span>
+      </button>
+      
+      <div className="container mx-auto px-4 py-16">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">
+            {samplePreviews[selectedSample].title}
+          </h1>
+          <p className="text-gray-600">
+            {samplePreviews[selectedSample].description}
+          </p>
+          <span className={`inline-block mt-2 text-sm px-2 py-1 rounded ${
+            samplePreviews[selectedSample].level === 'Beginner' ? 'bg-green-100 text-green-700' :
+            samplePreviews[selectedSample].level === 'Intermediate' ? 'bg-blue-100 text-blue-700' :
+            'bg-purple-100 text-purple-700'
+          }`}>
+            {samplePreviews[selectedSample].level}
+          </span>
+        </div>
+
+        <div id="originalContent">
+          <div className="practice-text mb-6 p-4 bg-white rounded-lg shadow text-lg">
+            {sampleTexts[selectedSample]}
+          </div>
+          
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-center gap-4">
+              <button
+                id="playNative"
+                className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                Native Speaker
+              </button>
+              <button
+                id="startRecording"
+                className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+              >
+                Start Recording
+              </button>
+              <button
+                id="stopRecording"
+                className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                disabled
+              >
+                Stop Recording
+              </button>
+            </div>
+            
+            <div id="status" className="text-center text-gray-600"></div>
+            <canvas id="audioVisualizer" className="w-full h-32 bg-white rounded-lg shadow"></canvas>
+            <div id="pronunciationVisualizer" className="mt-4"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return currentPage === 'selection' ? <SelectionPage /> : <PracticePage />;
+};
+
+export default App;// 전역 변수
 const React = window.React;
 const ReactDOM = window.ReactDOM;
 // React, ReactDOM 선언 후에 추가
@@ -160,7 +312,7 @@ let pitchAnalyzer = {
 };
 
 // 샘플 텍스트
-const sampleTexts = {
+const window.sampleTexts = {
     1: `Here's everything you need to know about the new McDonald's app. It's all the things you love about McDonald's at your fingertips.`,
     2: `御坂美琴ほんとに素晴らし力だね?`,
     3: `Whenever you walk along the street of small town of Sasebo, Japan, you will notice the long waiting line in front of the hamburger house. And looking around, you will find so many more hamburger places along the street. Then you might be thinking, why hamburger is so popular here? It's even a Japan.
@@ -825,7 +977,6 @@ function initMobileSupport() {
     document.addEventListener('click', unlockAudioContext);
 }
 
-// 초기화 부분을 다음과 같이 수정
 document.addEventListener('DOMContentLoaded', async () => {
     const loadingScreen = document.getElementById('loadingScreen');
     
@@ -846,24 +997,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             initMobileSupport();
         }
 
-        const practiceText = document.querySelector('.practice-text');
-        if (practiceText) {
-            practiceText.textContent = sampleTexts[1];
-        }
+        // 이 부분 제거
+        //const practiceText = document.querySelector('.practice-text');
+        //if (practiceText) {
+        //    practiceText.textContent = sampleTexts[1];
+        //}
 
-        document.querySelectorAll('.sample-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const sampleNumber = parseInt(e.target.dataset.sample);
-                changeSample(sampleNumber);
-            });
-        });
+        // 기존의 샘플 버튼 이벤트 리스너 부분 제거
+        //document.querySelectorAll('.sample-btn').forEach(btn => {
+        //    btn.addEventListener('click', (e) => {
+        //        const sampleNumber = parseInt(e.target.dataset.sample);
+        //        changeSample(sampleNumber);
+        //    });
+        //});
 
         document.getElementById('playNative').addEventListener('click', playNativeSpeaker);
         document.getElementById('startRecording').addEventListener('click', startRecording);
         document.getElementById('stopRecording').addEventListener('click', stopRecording);
         
-        // 피드백 스타일 적용
-        applyStylesToFeedback();
+        // React 앱 렌더링
+        ReactDOM.render(React.createElement(App), document.getElementById('app'));
+        
     } catch (error) {
         console.error('Initialization error:', error);
     }
