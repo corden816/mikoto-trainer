@@ -827,6 +827,7 @@ function changeSample(sampleNumber) {
     const practiceText = document.querySelector('.practice-text');
     if (practiceText) {
         practiceText.textContent = sampleTexts[sampleNumber] || "Sample text not found";
+        practiceText.style.whiteSpace = 'pre-line';
     }
 
     document.querySelectorAll('.sample-btn').forEach(btn => {
