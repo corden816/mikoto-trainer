@@ -1,9 +1,6 @@
-import React, { useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
-
 const App = () => {
-  const [currentPage, setCurrentPage] = useState('selection');
-  const [selectedSample, setSelectedSample] = useState(1);
+  const [currentPage, setCurrentPage] = React.useState('selection');
+  const [selectedSample, setSelectedSample] = React.useState(1);
   
   // 실제 예문 텍스트
   const sampleTexts = {
@@ -89,7 +86,7 @@ The hidden story of Sasebo hamburger is back to 1940's. During the World War 2, 
         onClick={() => setCurrentPage('selection')}
         className="absolute top-4 left-4 p-2 flex items-center text-gray-600 hover:text-gray-800"
       >
-        <ArrowLeft className="w-5 h-5 mr-1" />
+        <span>←</span> {/* ArrowLeft 아이콘 대신 텍스트 화살표 사용 */}
         <span>Back</span>
       </button>
       
@@ -317,12 +314,10 @@ window.sampleTexts = {
     2: `御坂美琴ほんとに素晴らし力だね?`,
     3: `Whenever you walk along the street of small town of Sasebo, Japan, you will notice the long waiting line in front of the hamburger house. And looking around, you will find so many more hamburger places along the street. Then you might be thinking, why hamburger is so popular here? It's even a Japan.
 
-The hidden story of Sasebo hamburger is back to 1940's. During the World War 2, Sasebo was IJN's one of the biggest naval base. Several shipyards and factories for supply were located there. But after the war, the entire facilities were under controll of US navy, and Sasebo city becomes essential supply base for US navy pacific fleet. During the Korean War, more than 20,000 troops were sent to the base for operation.`
-  
-  4: `this is sample text 4`,
-  
-  5: `this is sample text 5`,
-};
+The hidden story of Sasebo hamburger is back to 1940's. During the World War 2, Sasebo was IJN's one of the biggest naval base. Several shipyards and factories for supply were located there. But after the war, the entire facilities were under controll of US navy, and Sasebo city becomes essential supply base for US navy pacific fleet. During the Korean War, more than 20,000 troops were sent to the base for operation.`,
+    4: `昔々あるところに、おじいさんとおばあさんが住んでいました。おじいさんは山へ芝刈りに、おばあさんは川へ洗濯に行きました。おばあさんが川で洗濯をしていると、大きな桃が流れてきました。`,
+    5: `The latest AI model has shown remarkable improvements in natural language processing. With enhanced algorithms and training data, it can now understand context better than ever before.`
+  };
 
 // Azure Speech SDK 초기화
 function initSpeechSDK() {
