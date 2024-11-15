@@ -997,20 +997,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             initMobileSupport();
         }
 
-        // 이 부분 제거
-        //const practiceText = document.querySelector('.practice-text');
-        //if (practiceText) {
-        //    practiceText.textContent = sampleTexts[1];
-        //}
-
-        // 기존의 샘플 버튼 이벤트 리스너 부분 제거
-        //document.querySelectorAll('.sample-btn').forEach(btn => {
-        //    btn.addEventListener('click', (e) => {
-        //        const sampleNumber = parseInt(e.target.dataset.sample);
-        //        changeSample(sampleNumber);
-        //    });
-        //});
-
         document.getElementById('playNative').addEventListener('click', playNativeSpeaker);
         document.getElementById('startRecording').addEventListener('click', startRecording);
         document.getElementById('stopRecording').addEventListener('click', stopRecording);
