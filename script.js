@@ -189,39 +189,9 @@ const sampleTexts = {
         You're welcome.
         
         Have a good one!`,
-    
-    3: `Hello.
-    
-        Hello. um I had a question. So I paid for this to be checked. Is there any way I could switch it to like overhead or is that not possible?
-        
-        you have the boarding pass?
-        
-        Yeah, I do.
-        
-        Can I see?
-        
-        Non-priority.
+    3: `Whenever you walk along the street of small town of Sasebo, Japan, you will notice the long waiting line in front of the hamburger house. And looking around, you will find so many more hamburger places along the street. Then you might be thinking, why hamburger is so popular here? It's even a Japan.
 
-        But even though I paid for that to be checked I can't switch it?
-
-        If you want to. You can pay for priority and you can take with you on board.
-
-        So okay.
-
-        You want to send or you want to take with you?
-
-        I'll send it I guess.
-
-        20 Euro.
-
-        I'll send it.
-
-        Okay.`
-
-    4: `sample text`
-
-    5: 'sample text'
-    
+The hidden story of Sasebo hamburger is back to 1940's. During the World War 2, Sasebo was IJN's one of the biggest naval base. Several shipyards and factories for supply were located there. But after the war, the entire facilities were under controll of US navy, and Sasebo city becomes essential supply base for US navy pacific fleet. During the Korean War, more than 20,000 troops were sent to the base for operation.`
 };
 
 // Azure Speech SDK 초기화
