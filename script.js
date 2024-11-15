@@ -163,18 +163,31 @@ let pitchAnalyzer = {
 const sampleTexts = {
     1: `Here's everything you need to know about the new McDonald's app. It's all the things you love about McDonald's at your fingertips.`,
     2: `Good morning! How are you!
+    
         Good. How are you?
+        
         I'm good.
+        
         There you go.
+        
         To toronto?
+        
         Yeah, Thank you.
+        
         Do you have any bags? You're checking in?
+        
         No, just my backpack.
+        
         Okay, All right. You're all set.
+        
         Perfect.
+        
         And you're flying out of E86
+        
         Thank you so much.
+        
         You're welcome.
+        
         Have a good one!`,
     3: `Whenever you walk along the street of small town of Sasebo, Japan, you will notice the long waiting line in front of the hamburger house. And looking around, you will find so many more hamburger places along the street. Then you might be thinking, why hamburger is so popular here? It's even a Japan.
 
