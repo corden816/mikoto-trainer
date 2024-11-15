@@ -1,3 +1,7 @@
+// import 문 제거
+const React = window.React;
+const ReactDOM = window.ReactDOM;
+
 const App = () => {
   const [currentPage, setCurrentPage] = React.useState('selection');
   const [selectedSample, setSelectedSample] = React.useState(1);
