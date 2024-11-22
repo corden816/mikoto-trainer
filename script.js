@@ -161,7 +161,7 @@ let pitchAnalyzer = {
 
 // 샘플 텍스트
 const sampleTexts = {
-    "1": "Hi. Do you know if like the poter jets are flying later today or no?
+    "1": `Hi. Do you know if like the poter jets are flying later today or no?
         
         Do I know what sorry?
 
@@ -179,7 +179,7 @@ So yeah not today.
     
     Oh thank you, though.
     
-    thank you",
+    thank you`,
     
     "2": `Good morning! How are you!
 
