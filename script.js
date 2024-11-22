@@ -706,30 +706,6 @@ function analyzePronunciation(pronunciationResult) {
     };
 };
 
-        // 인식된 텍스트의 단어 출현 횟수 계산
-        recognizedWordsList.forEach(word => {
-            recognizedCount[word] = (recognizedCount[word] || 0) + 1;
-        });
-
-        // 각 단어의 상태를 저장할 객체 생성
-        const referenceStatus = referenceWords.map((word, index) => {
-            // 해당 단어가 이전에 몇 번 나왔는지 계산
-            const previousOccurrences = referenceWords
-                .slice(0, index)
-                .filter(w => w === word).length;
-            
-            // 인식된 텍스트에서 해당 단어의 출현 횟수 확인
-            const recognizedOccurrences = recognizedCount[word] || 0;
-            
-            // 이 위치의 단어가 생략되었는지 확인
-            const isOmitted = previousOccurrences >= recognizedOccurrences;
-
-            return {
-                word,
-                isOmitted
-            };
-        });
-
         const recognizedStatus = recognizedWords.map(wordObj => {
             const normalizedWord = wordObj.Word.toLowerCase().replace(/[.,!?]$/g, '');
             const isAdded = !wordCount[normalizedWord] || 
