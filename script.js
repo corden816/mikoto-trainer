@@ -654,8 +654,9 @@ function analyzePronunciation(pronunciationResult) {
     };
 
     const compareWords = (referenceText, recognizedWords) => {
-        // 기준 텍스트를 단어 배열로 변환하고 전처리
-        const referenceWords = referenceText
+        const compareWords = (referenceText, recognizedWords) => {
+    // 기준 텍스트를 단어 배열로 변환하고 전처리
+    const referenceWords = referenceText
         .toLowerCase()
         .replace(/[.,!?]/g, '')
         .split(' ')
