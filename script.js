@@ -657,6 +657,7 @@ function analyzePronunciation(pronunciationResult) {
         // 기준 텍스트를 단어 배열로 변환하고 전처리
         const referenceWords = referenceText
             .toLowerCase()
+            .replace(/[.,!?]/g, '')
             .split(' ')
             .map(word => word.replace(/[.,!?]$/g, ''))
             .filter(word => word.length > 0);
