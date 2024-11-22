@@ -1,3 +1,4 @@
+
 // 전역 변수
 const React = window.React;
 const ReactDOM = window.ReactDOM;
@@ -654,58 +655,50 @@ function analyzePronunciation(pronunciationResult) {
     };
 
     const compareWords = (referenceText, recognizedWords) => {
-        const compareWords = (referenceText, recognizedWords) => {
-    // 기준 텍스트를 단어 배열로 변환하고 전처리
-    const referenceWords = referenceText
-        .toLowerCase()
-        .replace(/[.,!?]/g, '')
-        .split(' ')
-        .filter(word => word.length > 0);
+        // 기준 텍스트를 단어 배열로 변환하고 전처리
+        const referenceWords = referenceText
+            .toLowerCase()
+            .split(' ')
+            .map(word => word.replace(/[.,!?]$/g, ''))
+            .filter(word => word.length > 0);
 
-    const recognizedWordsList = recognizedWords.map(wordObj => 
-        wordObj.Word.toLowerCase().replace(/[.,!?]/g, '')
-    );
+        // 인식된 텍스트를 단어 배열로 변환하고 전처리
+        const recognizedWordsList = recognizedWords.map(wordObj => 
+            wordObj.Word.toLowerCase().replace(/[.,!?]$/g, '')
+        );
 
-    // 동적 프로그래밍을 사용한 시퀀스 매칭
-    const matches = new Map();
-    recognizedWordsList.forEach((word, idx) => {
-        const matchPositions = referenceWords
-            .map((refWord, refIdx) => refWord === word ? refIdx : -1)
-            .filter(pos => pos !== -1);
+        // 각 단어의 출현 횟수를 카운트
+        const wordCount = {};
+        const recognizedCount = {};
+
+        // 기준 텍스트의 단어 출현 횟수 계산
+        referenceWords.forEach(word => {
+            wordCount[word] = (wordCount[word] || 0) + 1;
+        });
+
+        // 인식된 텍스트의 단어 출현 횟수 계산
+        recognizedWordsList.forEach(word => {
+            recognizedCount[word] = (recognizedCount[word] || 0) + 1;
+        });
+
+        // 각 단어의 상태를 저장할 객체 생성
+        const referenceStatus = referenceWords.map((word, index) => {
+            // 해당 단어가 이전에 몇 번 나왔는지 계산
+            const previousOccurrences = referenceWords
+                .slice(0, index)
+                .filter(w => w === word).length;
             
-        if (matchPositions.length > 0) {
-            // 가장 가까운 위치의 매칭을 선택
-            const bestMatch = matchPositions.reduce((best, current) => {
-                if (!matches.has(current)) return current;
-                if (!best) return current;
-                return Math.abs(idx - current) < Math.abs(idx - best) ? current : best;
-            }, null);
+            // 인식된 텍스트에서 해당 단어의 출현 횟수 확인
+            const recognizedOccurrences = recognizedCount[word] || 0;
             
-            if (bestMatch !== null) {
-                matches.set(bestMatch, idx);
-            }
-        }
-    });
+            // 이 위치의 단어가 생략되었는지 확인
+            const isOmitted = previousOccurrences >= recognizedOccurrences;
 
-    // 매칭 결과를 바탕으로 상태 생성
-    const referenceStatus = referenceWords.map((word, idx) => ({
-        word,
-        isOmitted: !matches.has(idx)
-    }));
-
-    const recognizedStatus = recognizedWords.map((wordObj, idx) => ({
-        ...wordObj,
-        isAdded: ![...matches.values()].includes(idx)
-    }));
-
-    const completenessScore = (matches.size / referenceWords.length) * 100;
-
-    return {
-        referenceStatus,
-        recognizedStatus,
-        calculatedCompleteness: completenessScore
-    };
-};
+            return {
+                word,
+                isOmitted
+            };
+        });
 
         const recognizedStatus = recognizedWords.map(wordObj => {
             const normalizedWord = wordObj.Word.toLowerCase().replace(/[.,!?]$/g, '');
@@ -844,7 +837,8 @@ function analyzePronunciation(pronunciationResult) {
             React.createElement('div', { className: 'space-y-4' },
                 nBest.Words.map((word, index) => {
                     const fluencyScore = word.PronunciationAssessment?.FluencyScore || 
-                    pronunciationResult.fluencyScore || 0;
+                                      (word.PronunciationAssessment?.AccuracyScore * 0.7 + 
+                                       pronunciationResult.fluencyScore * 0.3);
                     
                     return React.createElement('div', {
                         key: index,
@@ -926,7 +920,7 @@ function analyzePronunciation(pronunciationResult) {
                     ReactDOM.render(React.createElement(PronunciationVisualizer), root);
                 }
             }
-        
+        }
     } catch (error) {
         console.error("Error analyzing pronunciation:", error);
         console.error("Error details:", error.stack);
