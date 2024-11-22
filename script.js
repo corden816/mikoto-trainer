@@ -925,7 +925,7 @@ function analyzePronunciation(pronunciationResult) {
                     ReactDOM.render(React.createElement(PronunciationVisualizer), root);
                 }
             }
-        }
+        
     } catch (error) {
         console.error("Error analyzing pronunciation:", error);
         console.error("Error details:", error.stack);
