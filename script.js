@@ -169,7 +169,7 @@ const sampleTexts = {
     
     This one is not the Jets? Do we have later on JETS?
     
-    NO
+    No.
     
     None for today?
     
@@ -179,9 +179,29 @@ So yeah not today.
     
     Oh thank you, though.
     
-    thank you`,
+    thank you.`,
     
-    "2": `Good morning! How are you!
+    "2": `Hi, there!
+    
+    Hi.
+    
+    Do you see my passport or boarding pass?
+    
+    Yes, both of them.
+    
+    Perfect, There you go.
+    
+    I just take the elevator down?
+    
+    Yes yes yes yes
+    
+    Second?
+    
+    First!
+    
+    First floor!`,
+    
+    "3": `Good morning! How are you!
 
 Good. How are you?
 
@@ -208,12 +228,78 @@ Thank you so much.
 You're welcome.
 
 Have a good one!`,
+
+    "4": `Morning!
     
-    "3": `hello world 3`,
+    hi morning sir!
+    
+    how are you?
+    
+    how are you? good.
+    
+    pretty good.
+    
+    Mr.struk… Are you checking a bag?
+    
+    Uh no, just a carry on.
+    
+    just a carry on? Okay.
+    
+    Toronto’s your final destination?
+    
+    Yup.
+    
+    Do you know where the lounge here is in Frankfurt?
+    
+    That way and to the left I think?
+    
+    By b42. You take the escalator upstairs to the Maple Leaf Lounge.
+    
+    Okay perfect thank you!
+    
+    Your gate today will be by B46.
+    
+    B46? Okay perfect!
+    
+    8:20am should be the boarding but they’ll collect you in the lounge And they’ll tell you.
+    
+    Okay.
+    
+    When the boarding starts. Okay? Have a good day.
+    
+    Thank you so much!
+    
+    Have a good day.
+    
+    You too!`,
 
-    "4": `hello world 3`,
-
-    "5": `hello world 3`,
+    "5": `Hello.
+    
+    Hello. um I had a question. So I paid for this to be checked. Is there any way I could switch it to like an overhead or is that not possible?
+    
+    You have the boarding pass?
+    
+    yeah, I do.
+    
+    Can I see?
+    
+    Non-priority
+    
+    But even though I paid for that to be checked I can't switch it?
+    
+    if you want to. you can pay for priority and you can take with you on board.
+    
+    So okay
+    
+    you want to send or you want to take with you?
+    
+    I’ll send it I guess.
+    
+    20 Euro
+    
+    I’ll send it
+    
+    Okay`,
 };
 
 // Azure Speech SDK 초기화
