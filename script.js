@@ -658,8 +658,8 @@ function analyzePronunciation(pronunciationResult) {
         // 기준 텍스트를 단어 배열로 변환하고 전처리
         const referenceWords = referenceText
             .toLowerCase()
+            .replace(/[.,!?]/g, '')
             .split(' ')
-            .map(word => word.replace(/[.,!?]$/g, ''))
             .filter(word => word.length > 0);
 
         // 인식된 텍스트를 단어 배열로 변환하고 전처리
@@ -837,8 +837,7 @@ function analyzePronunciation(pronunciationResult) {
             React.createElement('div', { className: 'space-y-4' },
                 nBest.Words.map((word, index) => {
                     const fluencyScore = word.PronunciationAssessment?.FluencyScore || 
-                                      (word.PronunciationAssessment?.AccuracyScore * 0.7 + 
-                                       pronunciationResult.fluencyScore * 0.3);
+                    pronunciationResult.fluencyScore || 0;
                     
                     return React.createElement('div', {
                         key: index,
