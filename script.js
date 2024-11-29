@@ -178,7 +178,7 @@ const sampleTexts = {
     
 So yeah not today.
     
-    Oh thank you, though.
+    Okay thank you, though.
     
     thank you.`,
     
