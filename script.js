@@ -194,7 +194,7 @@ So yeah not today.
     
     I just take the elevator down?
     
-    Yes yes yes yes
+    Yes.
     
     Second?
     
